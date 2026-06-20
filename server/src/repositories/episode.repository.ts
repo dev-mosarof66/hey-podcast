@@ -19,6 +19,20 @@ export const EpisodeRepository = AppDataSource.getRepository(Episode).extend({
     return this.findOne({ where: { id }, relations: { topic: true } });
   },
 
+  /**
+   * The single episode that powers the home "digest hero": the newest ready
+   * episode OWNED BY this user. Excludes shared/global digests (those have a
+   * null userId), and reads just one row so the home screen stays light as the
+   * episode table grows. Returns null if the user has no episodes yet.
+   */
+  findHeroForUser(userId: string) {
+    return this.findOne({
+      where: { status: 'ready', userId },
+      relations: { topic: true },
+      order: { publishedAt: 'DESC', createdAt: 'DESC' },
+    });
+  },
+
   /** Global (shared) ready episodes for a topic — the browsable samples. */
   findSharedByTopic(topicId: string) {
     return this.find({

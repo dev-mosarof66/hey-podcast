@@ -6,6 +6,7 @@ import subscriptionRoutes from './subscription.routes';
 import configRoutes from './config.routes';
 import notificationRoutes from './notification.routes';
 import adminRoutes from './admin.routes';
+import promoRoutes from './promo.routes';
 
 const router = Router();
 
@@ -20,5 +21,6 @@ router.use('/subscription', subscriptionRoutes);
 router.use('/config', configRoutes);
 router.use('/notifications', notificationRoutes);
 router.use('/admin', adminRoutes);
+router.use('/promo', promoRoutes);
 
 export default router;

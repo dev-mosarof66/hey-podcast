@@ -10,7 +10,7 @@ export interface GeneratedEpisode {
   summary: string;
   audioUrl: string;
   durationSec: number;
-  transcript: { speaker: 'A' | 'B'; text: string }[];
+  transcript: { speaker: 'A' | 'B'; text: string; start: number; end: number }[];
   hosts: { A: string; B: string };
 }
 
@@ -26,7 +26,7 @@ export async function runPipeline(topic: string, minutes = ENGINE.minutes): Prom
   const script = await writeScript(brief, minutes);
 
   logger.info({ turns: script.turns.length }, 'engine: synthesizing voices');
-  const { wav, durationSec } = await deepgramTts.synthesize(script);
+  const { wav, durationSec, timings } = await deepgramTts.synthesize(script);
 
   const { url } = await saveAudio(wav);
   logger.info({ durationSec, audioUrl: url }, 'engine: episode assembled');
@@ -36,7 +36,12 @@ export async function runPipeline(topic: string, minutes = ENGINE.minutes): Prom
     summary: script.summary,
     audioUrl: url,
     durationSec,
-    transcript: script.turns,
+    transcript: script.turns.map((t, i) => ({
+      speaker: t.speaker,
+      text: t.text,
+      start: timings[i]?.start ?? 0,
+      end: timings[i]?.end ?? 0,
+    })),
     hosts: script.hosts,
   };
 }

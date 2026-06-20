@@ -4,7 +4,7 @@ import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 import { router } from 'expo-router';
 import { AnimatedLogo } from 'components/AnimatedLogo';
 import { useAuth } from 'components/AuthProvider';
-import { useGetMeQuery } from 'store/api';
+import { useGetMeQuery, useGetSubscriptionQuery } from 'store/api';
 import { hp, wp } from 'utils/utils';
 
 export default function SplashScreen() {
@@ -14,6 +14,11 @@ export default function SplashScreen() {
   const { data: me, isLoading, isUninitialized } = useGetMeQuery(undefined, {
     skip: !isAuthed,
   });
+  const {
+    data: sub,
+    isLoading: subLoading,
+    isUninitialized: subUninit,
+  } = useGetSubscriptionQuery(undefined, { skip: !isAuthed });
 
   // Safety net: never sit on the splash forever if the profile request hangs
   // (e.g. server unreachable / changed LAN IP). After this we route anyway.
@@ -26,20 +31,24 @@ export default function SplashScreen() {
   // Wait only while the profile request is genuinely in flight — once it
   // settles (success OR error) we route. On error `me` is undefined → home,
   // matching the tab guard, which also fails open.
-  const profilePending = isAuthed && (isUninitialized || isLoading) && !bailout;
+  const profilePending =
+    isAuthed && (isUninitialized || isLoading || subUninit || subLoading) && !bailout;
 
   useEffect(() => {
     if (!ready) return;
     if (profilePending) return;
 
+    const isPremium = sub?.tier === 'premium';
     const dest = !isAuthed
       ? '/(auth)/login'
       : me && !me.onboarded
         ? '/personalize'
-        : '/(tabs)/home';
+        : !isPremium
+          ? '/redeem'
+          : '/(tabs)/home';
     const timer = setTimeout(() => router.replace(dest), 600);
     return () => clearTimeout(timer);
-  }, [ready, isAuthed, profilePending, me]);
+  }, [ready, isAuthed, profilePending, me, sub]);
 
   return (
     <SafeAreaView className='flex-1'>

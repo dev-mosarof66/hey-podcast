@@ -42,3 +42,14 @@ export interface AdminEpisode {
   createdAt: string;
   topic: { id: string; label: string } | null;
 }
+
+export interface AdminPromoCode {
+  id: string;
+  code: string;
+  trialDays: number;
+  redeemed: boolean;
+  disabled: boolean;
+  redeemedBy: string | null;
+  redeemedAt: string | null;
+  createdAt: string;
+}

@@ -22,6 +22,18 @@ export async function listEpisodes(req: Request, res: Response, next: NextFuncti
   }
 }
 
+// GET /api/episodes/digest-hero — the home hero card.
+// Returns only the newest episode owned by the logged-in user (never a shared
+// global digest), so the home screen fetches one row instead of the whole feed.
+export async function getDigestHero(req: Request, res: Response, next: NextFunction) {
+  try {
+    const episode = await EpisodeRepository.findHeroForUser(req.user!.sub);
+    res.json(episode ?? null);
+  } catch (err) {
+    next(err);
+  }
+}
+
 // GET /api/episodes/:id
 export async function getEpisode(req: Request, res: Response, next: NextFunction) {
   try {
@@ -101,7 +113,22 @@ export async function generateDigest(req: Request, res: Response, next: NextFunc
     const userId = req.user!.sub;
 
     if (!engineEnabled) {
-      throw new HttpError(503, 'Generation engine is not configured');
+      // No GEMINI/DEEPGRAM keys → instant placeholder digest so onboarding and
+      // the free daily digest keep working (mirrors generateEpisode's stub).
+      const stub = EpisodeRepository.create({
+        title: 'Your daily digest',
+        prompt: 'Your personalized daily digest',
+        summary: null,
+        durationSec: 8 * 60,
+        audioUrl: SAMPLE_AUDIO[Math.floor(Math.random() * SAMPLE_AUDIO.length)],
+        status: 'ready',
+        isShared: false,
+        userId,
+        topicId: null,
+        publishedAt: new Date(),
+      });
+      await EpisodeRepository.save(stub);
+      return res.status(201).json(await EpisodeRepository.findByIdWithTopic(stub.id));
     }
 
     const episodeId = await generateUserDigest(userId, 'on_demand');

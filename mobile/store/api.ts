@@ -2,7 +2,7 @@ import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react';
 
 import { getToken } from './token';
 
-const BASE_URL = process.env.EXPO_PUBLIC_API_URL ?? 'https://api.heypodcast.dev';
+const BASE_URL = process.env.EXPO_PUBLIC_API_URL ?? 'https://hey-podcast.onrender.com/api';
 
 export interface AuthUser {
   id: string;
@@ -41,7 +41,7 @@ export interface ApiEpisode {
   title: string;
   summary: string | null;
   audioUrl: string | null;
-  transcript: { speaker: 'A' | 'B'; text: string }[] | null;
+  transcript: { speaker: 'A' | 'B'; text: string; start?: number; end?: number }[] | null;
   hosts: { A: string; B: string } | null;
   durationSec: number | null;
   status: string;
@@ -65,6 +65,12 @@ export interface ApiSubscription {
   tier: 'free' | 'premium';
   status: string;
   renewsAt: string | null;
+}
+
+/** Lifetime listening totals for the profile card. */
+export interface ApiStats {
+  episodesPlayed: number;
+  minutesListened: number;
 }
 
 /** Personalization options served by the app config. */
@@ -141,6 +147,13 @@ export const api = createApi({
       providesTags: ['Episodes'],
     }),
 
+    // Home hero card: only the newest episode owned by the user (never a
+    // shared/global digest). One row, so home stays light as the feed grows.
+    getDigestHero: builder.query<ApiEpisode | null, void>({
+      query: () => 'episodes/digest-hero',
+      providesTags: ['Episodes'],
+    }),
+
     // Single episode — used to poll generation status until it's 'ready'.
     getEpisode: builder.query<ApiEpisode, string>({
       query: (id) => `episodes/${id}`,
@@ -150,6 +163,12 @@ export const api = createApi({
     // Recently-played episodes (Home "Recent activity").
     getContinue: builder.query<ApiContinueItem[], void>({
       query: () => 'episodes/continue',
+      providesTags: ['Continue'],
+    }),
+
+    // Lifetime listening totals for the Profile stats card.
+    getStats: builder.query<ApiStats, void>({
+      query: () => 'episodes/stats',
       providesTags: ['Continue'],
     }),
 
@@ -200,6 +219,13 @@ export const api = createApi({
       invalidatesTags: ['Episodes'],
     }),
 
+    // Personalized daily digest from all the user's followed topics (free).
+    // Used by onboarding and any "generate my digest now" action.
+    generateDigest: builder.mutation<ApiEpisode, void>({
+      query: () => ({ url: 'episodes/digest', method: 'POST' }),
+      invalidatesTags: ['Episodes', 'Continue'],
+    }),
+
     // ── Library (saved) ─────────────────────────────────────────────────────
     getSaved: builder.query<ApiSavedItem[], void>({
       query: () => 'episodes/saved',
@@ -220,6 +246,14 @@ export const api = createApi({
     subscribe: builder.mutation<ApiSubscription, { plan: 'monthly' | 'yearly' }>({
       query: (body) => ({ url: 'subscription', method: 'POST', body }),
       invalidatesTags: ['Subscription'],
+    }),
+
+    redeemPromo: builder.mutation<
+      { tier: string; status: string; renewsAt: string | null; trialDays: number },
+      { code: string }
+    >({
+      query: (body) => ({ url: 'promo/redeem', method: 'POST', body }),
+      invalidatesTags: ['Subscription', 'Me'],
     }),
 
     // ── Notifications ───────────────────────────────────────────────────────
@@ -252,8 +286,10 @@ export const {
   useUpdateMeMutation,
   useDeleteAccountMutation,
   useGetEpisodesQuery,
+  useGetDigestHeroQuery,
   useGetEpisodeQuery,
   useGetContinueQuery,
+  useGetStatsQuery,
   useUpdateProgressMutation,
   useGetTopicsQuery,
   useGetBrowseTopicsQuery,
@@ -261,10 +297,12 @@ export const {
   useGetConfigQuery,
   useSetMyTopicsMutation,
   useGenerateEpisodeMutation,
+  useGenerateDigestMutation,
   useGetSavedQuery,
   useToggleSavedMutation,
   useGetSubscriptionQuery,
   useSubscribeMutation,
+  useRedeemPromoMutation,
   useGetNotificationsQuery,
   useMarkNotificationsReadMutation,
   useRegisterPushTokenMutation,

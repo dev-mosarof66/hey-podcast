@@ -25,6 +25,7 @@ export function toUiEpisode(e: ApiEpisode): Episode {
     color: ui.color,
     icon: ui.icon,
     audioUrl: e.audioUrl,
+    hosts: e.hosts,
   };
 }
 

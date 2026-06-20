@@ -19,6 +19,8 @@ export interface Episode {
   icon: IoniconName;
   /** Streamable audio URL, when the episode is ready. */
   audioUrl: string | null;
+  /** The two AI host display names (A/B). Null until the script is written. */
+  hosts?: { A: string; B: string } | null;
   /** 0–1 listening progress, when started. */
   progress?: number;
   /** Saved listening position in seconds (for resume). */

@@ -122,7 +122,7 @@ export default function GeneratingScreen() {
           <Text className="text-foreground mt-8 text-2xl font-bold tracking-tight">
             Creating your episode
           </Text>
-          <Text className="text-foreground/50 mt-2 text-center text-sm">{MESSAGES[msg]}</Text>
+          <Text className="text-foreground/50 mt-2 text-center text-md">{MESSAGES[msg]}</Text>
           <View className="bg-foreground/10 mt-8 h-1.5 w-full overflow-hidden rounded-full">
             <Animated.View className="bg-primary h-full rounded-full" style={{ width }} />
           </View>

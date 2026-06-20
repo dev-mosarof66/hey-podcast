@@ -156,6 +156,18 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
         } catch {
           // rate applies once loaded
         }
+        // Show transport controls on the lock screen / notification shade so the
+        // user can control playback from outside the app while it plays in the
+        // background.
+        try {
+          player.setActiveForLockScreen(
+            true,
+            { title: ep.title, artist: ep.topic, albumTitle: 'Hey Podcast' },
+            { showSeekForward: true, showSeekBackward: true }
+          );
+        } catch {
+          // lock-screen controls unavailable on this platform/build
+        }
         player.play();
       },
 
@@ -194,6 +206,11 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
         const player = playerRef.current!;
         saveProgress(player.currentTime);
         player.pause();
+        try {
+          player.clearLockScreenControls();
+        } catch {
+          // ignore
+        }
         episodeRef.current = null;
         setState((prev) => ({
           ...prev,

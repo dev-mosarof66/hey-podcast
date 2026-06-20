@@ -23,6 +23,19 @@ export async function upsertProgress(req: Request, res: Response, next: NextFunc
   }
 }
 
+// GET /api/episodes/stats — lifetime listening totals for the profile card.
+export async function getStats(req: Request, res: Response, next: NextFunction) {
+  try {
+    const raw = await EpisodeProgressRepository.statsForUser(req.user!.sub);
+    res.json({
+      episodesPlayed: Number(raw?.episodes ?? 0),
+      minutesListened: Math.round(Number(raw?.seconds ?? 0) / 60),
+    });
+  } catch (err) {
+    next(err);
+  }
+}
+
 // GET /api/episodes/continue — recently-played episodes for the feed's activity row.
 export async function listContinue(req: Request, res: Response, next: NextFunction) {
   try {

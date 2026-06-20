@@ -41,7 +41,7 @@ export function ConfirmDialog({
               className={`h-14 w-14 items-center justify-center rounded-full ${
                 destructive ? 'bg-red-500/10' : 'bg-primary/10'
               }`}>
-              <Ionicons name={icon} size={26} color={destructive ? '#ef4444' : Colors.primary} />
+              <Ionicons name={icon} size={20} color={destructive ? '#ef4444' : Colors.primary} />
             </View>
           )}
           <Text className="text-foreground mt-4 text-xl font-bold">{title}</Text>

@@ -1,7 +1,7 @@
-import { useState } from 'react';
+import { useCallback, useState } from 'react';
 import { Pressable, ScrollView, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { router, useLocalSearchParams } from 'expo-router';
+import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 
 import { Colors } from 'constants/Colors';
@@ -97,6 +97,15 @@ function ListSkeleton() {
 export default function LibraryScreen() {
   const { tab } = useLocalSearchParams<{ tab?: string }>();
   const [segment, setSegment] = useState(tab ?? 'saved');
+
+  // Tab screens stay mounted, so `useState(tab)` only applies on first mount.
+  // Re-sync the segment to the incoming param each time the screen is focused,
+  // so the Home quick actions land on the requested tab on every visit.
+  useFocusEffect(
+    useCallback(() => {
+      if (tab) setSegment(tab);
+    }, [tab]),
+  );
 
   const { data: saved = [], isLoading: savedLoading } = useGetSavedQuery();
   const { data: cont = [], isLoading: contLoading } = useGetContinueQuery();

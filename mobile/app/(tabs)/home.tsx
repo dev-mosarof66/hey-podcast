@@ -19,7 +19,7 @@ import { EpisodeCardSkeleton } from 'components/EpisodeCardSkeleton';
 import { Shimmer } from 'components/Shimmer';
 import { useTheme } from 'components/ThemeProvider';
 import { usePlayerActions } from 'components/PlayerProvider';
-import { useGetContinueQuery, useGetEpisodesQuery, useGetMeQuery, useGetNotificationsQuery } from 'store/api';
+import { useGetContinueQuery, useGetDigestHeroQuery, useGetMeQuery, useGetNotificationsQuery } from 'store/api';
 import type { Episode } from 'constants/types';
 import { toUiContinue, toUiEpisode } from 'utils/episode';
 import { hp, wp } from 'utils/utils';
@@ -33,15 +33,14 @@ function greeting() {
 
 export default function HomeScreen() {
   const { data: me, isLoading: meLoading } = useGetMeQuery();
-  const { data: apiEpisodes, isLoading, isError, refetch, isFetching } = useGetEpisodesQuery();
+  const { data: heroEpisode, isLoading, isError, refetch } = useGetDigestHeroQuery();
   const { data: continueItems, isLoading: continueLoading } = useGetContinueQuery();
   const { playEpisode } = usePlayerActions();
   const [avatarLoaded, setAvatarLoaded] = useState(false);
   const { data: notifications = [] } = useGetNotificationsQuery();
   const unread = notifications.some((n) => !n.read);
 
-  const episodes = (apiEpisodes ?? []).map(toUiEpisode);
-  const today = episodes[0];
+  const today = heroEpisode ? toUiEpisode(heroEpisode) : undefined;
   const recent = (continueItems ?? []).map(toUiContinue);
 
   const play = (ep: Episode) => {

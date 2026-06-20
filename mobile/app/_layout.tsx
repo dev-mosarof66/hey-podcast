@@ -30,6 +30,7 @@ export default function RootLayout() {
                 <Stack.Screen name="generating" options={{ gestureEnabled: false }} />
                 <Stack.Screen name="notifications" />
                 <Stack.Screen name="topic/[id]" />
+                <Stack.Screen name="redeem" />
                 <Stack.Screen name="player" options={{ presentation: 'modal' }} />
               </Stack>
               <StatusBar style="auto" />

@@ -4,6 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 
 import { Colors } from 'constants/Colors';
 import { useTheme } from 'components/ThemeProvider';
+import { HOSTS } from 'constants/hosts';
 import type { Episode } from 'constants/types';
 import { wp } from 'utils/utils';
 
@@ -24,6 +25,11 @@ export function DigestHero({ episode, onPress }: { episode: Episode; onPress?: (
     shadowOffset: { width: 0, height: dark ? 8 : 6 },
     elevation: dark ? 10 : 6,
   };
+
+  // Real host names from the generated script; fall back to the defaults.
+  const hostA = episode.hosts?.A ?? HOSTS.A;
+  const hostB = episode.hosts?.B ?? HOSTS.B;
+
   return (
     <TouchableOpacity onPress={onPress} style={shadow}>
       <LinearGradient
@@ -59,7 +65,7 @@ export function DigestHero({ episode, onPress }: { episode: Episode; onPress?: (
         </View>
 
         {/* Title */}
-        <Text numberOfLines={2} className="mt-3 text-3xl font-extrabold leading-7 text-white">
+        <Text numberOfLines={2} className="mt-3 text-3xl font-extrabold leading-8 text-white">
           {episode.title}
         </Text>
 
@@ -67,13 +73,15 @@ export function DigestHero({ episode, onPress }: { episode: Episode; onPress?: (
         <View className="mt-2 flex-row items-center gap-2">
           <View className="flex-row">
             <View className="h-6 w-6 items-center justify-center rounded-full border border-white/80 bg-white/25">
-              <Text className="text-[10px] font-bold text-white">A</Text>
+              <Text className="text-[10px] font-bold text-white">{hostA.charAt(0)}</Text>
             </View>
             <View className="-ml-2 h-6 w-6 items-center justify-center rounded-full border border-white/80 bg-white/25">
-              <Text className="text-[10px] font-bold text-white">M</Text>
+              <Text className="text-[10px] font-bold text-white">{hostB.charAt(0)}</Text>
             </View>
           </View>
-          <Text className="text-sm text-white/75">Alex & Maya · {episode.durationMin} min</Text>
+          <Text className="text-sm text-white/75">
+            {hostA} & {hostB} · {episode.durationMin} min
+          </Text>
         </View>
 
         {/* Play row */}

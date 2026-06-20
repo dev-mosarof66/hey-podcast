@@ -6,6 +6,8 @@ export interface TtsResult {
   /** Complete WAV file (header + PCM). */
   wav: Buffer;
   durationSec: number;
+  /** Per-turn start/end seconds, aligned with script.turns — for transcript sync. */
+  timings: { start: number; end: number }[];
 }
 
 export interface TtsProvider {
@@ -90,16 +92,28 @@ export const deepgramTts: TtsProvider = {
       speakTurn(turn.text, hostById(turn.speaker).voice)
     );
 
-    // Stitch the ordered clips with a short pause between each.
+    // Stitch the ordered clips with a short pause between each, tracking the
+    // start/end time of every turn as we go (for karaoke-style transcript sync).
     const gap = silence(ENGINE.pauseMs);
+    const bytesPerSec = ENGINE.sampleRate * 2;
+    const gapSec = gap.length / bytesPerSec;
     const parts: Buffer[] = [];
+    const timings: { start: number; end: number }[] = [];
+    let cursor = 0;
     clips.forEach((clip, i) => {
+      const start = cursor;
+      const end = start + clip.length / bytesPerSec;
+      timings.push({ start: Number(start.toFixed(2)), end: Number(end.toFixed(2)) });
+      cursor = end;
       parts.push(clip);
-      if (i < clips.length - 1) parts.push(gap);
+      if (i < clips.length - 1) {
+        parts.push(gap);
+        cursor += gapSec;
+      }
     });
 
     const pcm = Buffer.concat(parts);
-    const durationSec = Math.round(pcm.length / (ENGINE.sampleRate * 2));
-    return { wav: pcmToWav(pcm, ENGINE.sampleRate), durationSec };
+    const durationSec = Math.round(pcm.length / bytesPerSec);
+    return { wav: pcmToWav(pcm, ENGINE.sampleRate), durationSec, timings };
   },
 };

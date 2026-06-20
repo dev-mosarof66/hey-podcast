@@ -37,6 +37,7 @@
       "**/*"
     ],
     "ios": {
+      "bundleIdentifier": "com.heypodcast.app",
       "supportsTablet": true,
       "infoPlist": {
         "UIBackgroundModes": [

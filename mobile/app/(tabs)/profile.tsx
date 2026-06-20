@@ -16,8 +16,8 @@ import { ThemeSetter } from 'components/ThemeSetter';
 import { useCardShadow } from 'hooks/useCardShadow';
 import {
   useDeleteAccountMutation,
-  useGetContinueQuery,
   useGetMeQuery,
+  useGetStatsQuery,
   useGetSubscriptionQuery,
   useGetTopicsQuery,
 } from 'store/api';
@@ -35,9 +35,9 @@ function Stat({ value, label, loading }: { value: string; label: string; loading
       {loading ? (
         <Shimmer className="h-6 w-10 rounded-md bg-white/20" />
       ) : (
-        <Text className="text-lg font-bold text-white">{value}</Text>
+        <Text className="text-xl font-bold text-white">{value}</Text>
       )}
-      <Text className="mt-0.5 text-xs text-white/60">{label}</Text>
+      <Text className="mt-0.5 text-md text-white/60">{label}</Text>
     </View>
   );
 }
@@ -60,13 +60,13 @@ export default function ProfileScreen() {
   const { signOut: authSignOut } = useAuth();
   const { data: me, isLoading: meLoading } = useGetMeQuery();
   const { data: topics = [], isLoading: topicsLoading } = useGetTopicsQuery();
-  const { data: cont = [], isLoading: contLoading } = useGetContinueQuery();
+  const { data: stats, isLoading: statsLoading } = useGetStatsQuery();
   const { data: sub, isLoading: subLoading } = useGetSubscriptionQuery();
 
   const isPremium = sub?.tier === 'premium';
   const followed = topics.filter((t) => t.followed).length;
-  const episodesPlayed = cont.length;
-  const minutesListened = Math.round(cont.reduce((sum, c) => sum + (c.progressSec || 0), 0) / 60);
+  const episodesPlayed = stats?.episodesPlayed ?? 0;
+  const minutesListened = stats?.minutesListened ?? 0;
 
   const name = me?.displayName || 'there';
   const email = me?.email ?? '';
@@ -103,7 +103,7 @@ export default function ProfileScreen() {
 
       <ScrollView
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ paddingHorizontal: wp(6), paddingBottom: hp(14) }}>
+        contentContainerStyle={{ paddingHorizontal: wp(6), paddingBottom: hp(14),paddingTop: wp(4) }}>
         {/* Identity card */}
         <LinearGradient
           colors={['#9B1FA4', '#721378', '#3C0A45']}
@@ -128,10 +128,10 @@ export default function ProfileScreen() {
                 </>
               ) : (
                 <>
-                  <Text numberOfLines={1} className="text-xl font-bold text-white">
+                  <Text numberOfLines={1} className="text-2xl font-bold text-white">
                     {name}
                   </Text>
-                  <Text numberOfLines={1} className="text-sm text-white/70">
+                  <Text numberOfLines={1} className="text-base text-white/70">
                     {email}
                   </Text>
                 </>
@@ -140,16 +140,16 @@ export default function ProfileScreen() {
           </View>
 
           <View className="mt-6 flex-row items-center">
-            <Stat value={String(episodesPlayed)} label="Episodes" loading={contLoading} />
+            <Stat value={String(episodesPlayed)} label="Episodes" loading={statsLoading} />
             <View className="h-8 w-px bg-white/20" />
-            <Stat value={formatMinutes(minutesListened)} label="Listened" loading={contLoading} />
+            <Stat value={formatMinutes(minutesListened)} label="Listened" loading={statsLoading} />
             <View className="h-8 w-px bg-white/20" />
             <Stat value={String(followed)} label="Topics" loading={topicsLoading} />
           </View>
         </LinearGradient>
 
         {/* Premium card */}
-        <Pressable onPress={() => router.navigate('/pricing')} className="active:opacity-90">
+        <Pressable onPress={() => router.navigate('/redeem')} className="active:opacity-90">
           <LinearGradient
             colors={['#F59E0B', '#D97706']}
             start={{ x: 0, y: 0 }}
@@ -159,8 +159,8 @@ export default function ProfileScreen() {
               cardShadow,
             ]}>
             <View className="flex-row items-center gap-3">
-              <View className="h-11 w-11 items-center justify-center rounded-full bg-white/25">
-                <Ionicons name="diamond" size={20} color="#fff" />
+              <View className="h-12 w-12 items-center justify-center rounded-full bg-white/25">
+                <Ionicons name="diamond" size={wp(6)} color="#fff" />
               </View>
               <View className="flex-1 gap-1.5">
                 {subLoading ? (
@@ -170,10 +170,10 @@ export default function ProfileScreen() {
                   </>
                 ) : (
                   <>
-                    <Text className="text-base font-bold text-white">
+                    <Text className="text-lg font-bold text-white">
                       {isPremium ? 'Premium active' : 'Go Premium'}
                     </Text>
-                    <Text className="text-xs text-white/80">
+                    <Text className="text-sm text-white/80">
                       {isPremium
                         ? 'Manage your subscription'
                         : 'Unlimited episodes & offline downloads'}
@@ -211,6 +211,18 @@ export default function ProfileScreen() {
             value={`${speed}×`}
             onPress={cyclePlaybackSpeed}
           />
+          <SettingRow
+            icon="people-outline"
+            label="Manage hosts"
+            value="Upcoming"
+            onPress={() =>
+              Toast.show({
+                type: 'info',
+                text1: 'Coming soon',
+                text2: 'Custom host voices & names are on the way.',
+              })
+            }
+          />
         </View>
 
         {/* Appearance */}
@@ -221,9 +233,9 @@ export default function ProfileScreen() {
         <SectionLabel>Account</SectionLabel>
         <View className="rounded-2xl bg-card px-4" style={cardShadow}>
           <SettingRow
-            icon="card-outline"
-            label="Manage subscription"
-            value={isPremium ? 'Premium' : 'Free'}
+            icon="gift-outline"
+            label="Pricing"
+            value={isPremium ? 'Premium' : undefined}
             onPress={() => router.navigate('/pricing')}
           />
           <SettingRow

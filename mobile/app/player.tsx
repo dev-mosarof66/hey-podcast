@@ -45,6 +45,9 @@ export default function PlayerScreen() {
   const isSaved = saved.some((s) => s.id === episode.id);
   const transcript = full?.transcript ?? [];
   const hostsLabel = full?.hosts ? `${full.hosts.A} & ${full.hosts.B}` : HOSTS_LABEL;
+  const activeIdx = transcript.findIndex(
+    (t) => t.start != null && position >= t.start && (t.end == null || position < t.end)
+  );
 
   const cycleRate = () => {
     const i = PLAYBACK_RATES.indexOf(rate);
@@ -131,7 +134,7 @@ export default function PlayerScreen() {
             className="max-w-md text-center text-3xl font-extrabold leading-10 text-foreground">
             {episode.title}
           </Text>
-          <Text className="text-md mt-3 text-foreground/70">{hostsLabel} · AI hosts</Text>
+          <Text className="text-md mt-3 text-foreground/70">{hostsLabel} · HOSTS</Text>
         </View>
 
         {/* Transcript loading — placeholder while the full episode is fetched */}
@@ -159,21 +162,38 @@ export default function PlayerScreen() {
             <Text className="mb-3 text-xs font-bold uppercase tracking-widest text-foreground/50">
               Transcript
             </Text>
-            {transcript.map((t, i) => (
-              <View key={i} className="mb-3">
-                <Text
-                  className="text-xs font-bold"
-                  style={{ color: t.speaker === 'A' ? accent : Colors.secondary }}>
-                  {full?.hosts?.[t.speaker] ?? hostName(t.speaker)}
-                </Text>
-                <Text className="mt-0.5 text-sm leading-5 text-foreground/80">{t.text}</Text>
-              </View>
-            ))}
+            {transcript.map((t, i) => {
+              const isActive = i === activeIdx;
+              return (
+                <View key={i} className="mb-3">
+                  <Text
+                    className="text-xs font-bold"
+                    style={{
+                      color: t.speaker === 'A' ? accent : Colors.secondary,
+                      opacity: isActive ? 1 : 0.7,
+                    }}>
+                    {full?.hosts?.[t.speaker] ?? hostName(t.speaker)}
+                  </Text>
+                  <Text
+                    className={`mt-0.5 text-sm leading-5 ${
+                      isActive ? 'font-semibold text-foreground' : 'text-foreground/40'
+                    }`}>
+                    {t.text}
+                  </Text>
+                </View>
+              );
+            })}
           </ScrollView>
         )}
 
-        <View className='w-full px-6 absolute bottom-0' style={{
-          paddingBottom: inset.bottom
+        {/* bottom bar */}
+        <View className='w-full px-6 py-3 absolute bottom-0 bg-background' style={{
+          marginBottom: inset.bottom - wp(4),
+          shadowColor: dark ? Colors.primary : '#000',
+          shadowOpacity: dark ? 0.35 : 0.15,
+          shadowRadius: dark ? 14 : 12,
+          shadowOffset: { width: 0, height: dark ? 0 : 4 },
+          elevation: dark ? 8 : 10,
         }}>
           {/* Scrubber */}
           <View>

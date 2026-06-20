@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { Modal, Pressable, Text, TextInput, View } from 'react-native';
+import { useEffect, useState } from 'react';
+import { Keyboard, Modal, Pressable, Text, TextInput, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
 import { Colors } from 'constants/Colors';
@@ -17,6 +17,16 @@ interface Props {
 export function DeleteAccountDialog({ visible, loading, onConfirm, onCancel }: Props) {
   const [text, setText] = useState('');
   const canDelete = text.trim() === CONFIRM_PHRASE;
+  const [kbUp, setKbUp] = useState(false);
+
+  useEffect(() => {
+    const show = Keyboard.addListener('keyboardDidShow', () => setKbUp(true));
+    const hide = Keyboard.addListener('keyboardDidHide', () => setKbUp(false));
+    return () => {
+      show.remove();
+      hide.remove();
+    };
+  }, []);
 
   const close = () => {
     setText('');
@@ -30,21 +40,22 @@ export function DeleteAccountDialog({ visible, loading, onConfirm, onCancel }: P
       animationType="fade"
       statusBarTranslucent
       onRequestClose={close}>
-      <View className="flex-1 items-center justify-center px-8">
+      <View
+        className={`flex-1 items-center px-8 ${kbUp ? 'justify-start pt-16' : 'justify-center'}`}>
         <Pressable className="absolute inset-0 bg-black/50" onPress={close} />
 
         <View className="bg-card w-full rounded-3xl p-6">
           <View className="items-center">
             <View className="h-14 w-14 items-center justify-center rounded-full bg-red-500/10">
-              <Ionicons name="trash-outline" size={26} color="#ef4444" />
+              <Ionicons name="trash-outline" size={24} color="#ef4444" />
             </View>
-            <Text className="text-foreground mt-4 text-xl font-bold">Delete account</Text>
-            <Text className="text-foreground/60 mt-2 text-center text-sm leading-5">
+            <Text className="text-foreground mt-2 text-2xl font-bold">Delete account</Text>
+            <Text className="text-foreground/60 mt-2 text-center text-md leading-5">
               This permanently deletes your account and all your data. This can&rsquo;t be undone.
             </Text>
           </View>
 
-          <Text className="text-foreground/50 mt-5 text-xs">
+          <Text className="text-foreground/50 mt-5 text-sm">
             Type <Text className="text-foreground font-bold">{CONFIRM_PHRASE}</Text> to confirm
           </Text>
           <TextInput

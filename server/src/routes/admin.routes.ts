@@ -2,10 +2,14 @@ import { Router } from 'express';
 import {
   adminMe,
   deleteAdminEpisode,
+  deletePromoCode,
+  generatePromoCode,
   generateTopicPod,
   listAdminEpisodes,
   listAdminTopics,
+  listPromoCodes,
   runGlobalBatch,
+  setPromoCodeDisabled,
 } from '../controllers/admin.controller';
 import { requireAuth } from '../middleware/auth';
 import { requireAdmin } from '../middleware/admin';
@@ -21,5 +25,9 @@ router.get('/episodes', listAdminEpisodes);
 router.post('/topics/:id/generate', generateTopicPod);
 router.post('/global-run', runGlobalBatch);
 router.delete('/episodes/:id', deleteAdminEpisode);
+router.get('/promo-codes', listPromoCodes);
+router.post('/promo-codes', generatePromoCode);
+router.patch('/promo-codes/:id', setPromoCodeDisabled);
+router.delete('/promo-codes/:id', deletePromoCode);
 
 export default router;

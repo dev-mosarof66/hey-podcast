@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { api, type AdminEpisode, type AdminTopic } from '@/lib/api';
 import { clearToken, getToken } from '@/lib/auth';
 
@@ -114,6 +115,9 @@ export default function DashboardPage() {
       <div className="mb-2 flex items-center justify-between">
         <h1 className="text-2xl font-bold">Hey Podcast Admin</h1>
         <div className="flex items-center gap-3 text-sm text-neutral-400">
+          <Link href="/promo" className="rounded-md border border-neutral-700 px-3 py-1.5 hover:bg-neutral-800">
+            Promo codes
+          </Link>
           <span>{email}</span>
           <button onClick={logout} className="rounded-md border border-neutral-700 px-3 py-1.5 hover:bg-neutral-800">
             Log out

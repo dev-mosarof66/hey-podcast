@@ -146,11 +146,7 @@ export default function DiscoverScreen() {
                       style={{ backgroundColor: ui.color + '22' }}>
                       <Ionicons name={ui.icon} size={22} color={ui.color} />
                     </View>
-                    <Text className="text-foreground text-base font-semibold">{t.label}</Text>
-                    <View className="flex-row items-center gap-1.5">
-                      <Ionicons name="add-circle-outline" size={16} color={Colors.muted} />
-                      <Text className="text-foreground/50 text-xs font-semibold">Follow</Text>
-                    </View>
+                    <Text className="text-foreground text-lg font-semibold">{t.label}</Text>
                   </Pressable>
                 );
               })}

@@ -12,7 +12,9 @@ import { Colors } from 'constants/Colors';
 import type { IoniconName } from 'constants/types';
 import { topicUi } from 'constants/topicUi';
 import {
+  useGenerateDigestMutation,
   useGetConfigQuery,
+  useGetEpisodeQuery,
   useGetMeQuery,
   useSetMyTopicsMutation,
   useUpdateMeMutation,
@@ -47,6 +49,7 @@ export default function PersonalizeScreen() {
   const { data: me } = useGetMeQuery();
   const [updateMe, { isLoading: savingMe }] = useUpdateMeMutation();
   const [saveTopics, { isLoading: savingTopics }] = useSetMyTopicsMutation();
+  const [generateDigest] = useGenerateDigestMutation();
 
   const ageRanges = config?.ageRanges ?? [];
   const professions = config?.professions ?? [];
@@ -55,11 +58,21 @@ export default function PersonalizeScreen() {
 
   const [step, setStep] = useState(0);
   const [generating, setGenerating] = useState(false);
+  const [genId, setGenId] = useState<string | null>(null);
   const [ageRange, setAgeRange] = useState<string | null>(null);
   const [profession, setProfession] = useState<string | null>(null);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const seededProfile = useRef(false);
   const seededTopics = useRef(false);
+
+  // Poll the just-queued episode until the generation job reaches a terminal
+  // state. Stops polling once ready/failed so we don't hammer the server.
+  const { data: genEpisode } = useGetEpisodeQuery(genId ?? '', {
+    skip: !genId,
+    pollingInterval: 3000,
+  });
+  const genReady = genEpisode?.status === 'ready';
+  const genFailed = genEpisode?.status === 'failed';
 
   useEffect(() => {
     if (me && !seededProfile.current) {
@@ -103,9 +116,16 @@ export default function PersonalizeScreen() {
         router.back();
         return;
       }
-      // First-time onboarding: show the generating step → pricing.
+
+      // First-time onboarding: show the generating step and build the user's
+      // personalized daily digest from all the topics they just picked, then
+      // wait for it to finish. (Free — uses the digest endpoint, not the
+      // premium-gated on-demand generator.)
       setGenerating(true);
+      const episode = await generateDigest().unwrap();
+      setGenId(episode.id);
     } catch {
+      setGenerating(false);
       Toast.show({ type: 'error', text1: 'Could not save', text2: 'Please try again.' });
     }
   };
@@ -113,7 +133,13 @@ export default function PersonalizeScreen() {
   const onContinue = () => (step < TOTAL_STEPS - 1 ? goTo(step + 1) : finish());
 
   if (generating) {
-    return <GeneratingDigest onDone={() => router.replace('/pricing')} />;
+    return (
+      <GeneratingDigest
+        ready={genReady}
+        failed={genFailed}
+        onDone={() => router.replace('/redeem')}
+      />
+    );
   }
 
   const pageScroll = {

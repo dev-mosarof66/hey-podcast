@@ -11,6 +11,7 @@ import { GenerationJob } from './entities/GenerationJob';
 import { Subscription } from './entities/Subscription';
 import { PushToken } from './entities/PushToken';
 import { Notification } from './entities/Notification';
+import { PromoCode } from './entities/PromoCode';
 
 export const AppDataSource = new DataSource({
   type: 'postgres',
@@ -30,6 +31,7 @@ export const AppDataSource = new DataSource({
     Subscription,
     PushToken,
     Notification,
+    PromoCode,
   ],
   migrations: ['src/migrations/*.ts'],
   subscribers: [],

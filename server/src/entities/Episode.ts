@@ -33,8 +33,9 @@ export class Episode {
   audioUrl: string | null;
 
   // The two-host dialogue used to synthesize the audio — shown as a transcript.
+  // start/end are seconds into the audio, for syncing the highlight to playback.
   @Column({ type: 'jsonb', nullable: true })
-  transcript: { speaker: 'A' | 'B'; text: string }[] | null;
+  transcript: { speaker: 'A' | 'B'; text: string; start?: number; end?: number }[] | null;
 
   // Generated first names for the two hosts (A = male voice, B = female voice).
   @Column({ type: 'jsonb', nullable: true })
