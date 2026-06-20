@@ -1,0 +1,61 @@
+{
+  "expo": {
+    "name": "Hey Podcast",
+    "slug": "hey-podcast",
+    "version": "1.0.0",
+    "scheme": "heypodcast",
+    "web": {
+      "bundler": "metro",
+      "favicon": "./assets/splash-icon.png"
+    },
+    "experiments": {
+      "tsconfigPaths": true,
+      "typedRoutes": true
+    },
+    "plugins": [
+      "expo-router",
+      "expo-secure-store",
+      "expo-web-browser",
+      "@react-native-google-signin/google-signin",
+      "expo-audio",
+      [
+        "expo-notifications",
+        {
+          "color": "#721378"
+        }
+      ]
+    ],
+    "orientation": "portrait",
+    "icon": "./assets/playstore-icon.png",
+    "userInterfaceStyle": "light",
+    "splash": {
+      "image": "./assets/logo.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#ffffff"
+    },
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "ios": {
+      "supportsTablet": true,
+      "infoPlist": {
+        "UIBackgroundModes": [
+          "audio"
+        ]
+      }
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/android-icon.png",
+        "backgroundColor": "#ffffff"
+      },
+      "package": "com.heypodcast.app"
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "df400f67-8164-4366-b069-dd7a51fe31db"
+      }
+    }
+  }
+}

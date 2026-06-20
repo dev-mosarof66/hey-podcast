@@ -1,0 +1,89 @@
+# Render Blueprint for the Hey Podcast backend API.
+# Docs: https://render.com/docs/blueprint-spec
+#
+# This file lives at the REPO ROOT (Render only reads render.yaml from there),
+# but the service builds from the `server/` subdirectory via `rootDir`.
+#
+# To deploy: push this repo to GitHub, then in the Render dashboard choose
+# "New +" → "Blueprint" and point it at the repo. Render reads this file and
+# provisions the service. Fill in the `sync: false` secrets afterwards.
+
+services:
+  - type: web
+    name: hey-podcast-api
+    runtime: node
+    rootDir: server
+    # Closest region to Asia/Dhaka. Options: oregon | ohio | virginia | frankfurt | singapore
+    region: singapore
+    plan: free
+    # package-lock.json is committed, so `npm ci` gives reproducible installs.
+    # devDependencies (typescript) are needed for the build, so don't use --omit=dev here.
+    buildCommand: npm ci && npm run build
+    startCommand: npm run start
+    healthCheckPath: /api/health
+    autoDeploy: true
+
+    envVars:
+      - key: NODE_ENV
+        value: production
+
+      # Render injects PORT automatically and the app reads process.env.PORT,
+      # but pinning it keeps the local-disk audio fallback URL predictable.
+      - key: PORT
+        value: 4000
+
+      # No migrations exist yet, so let TypeORM create the schema on first boot.
+      # Once you add migrations, set this to "false" and run them in buildCommand.
+      - key: DB_SYNCHRONIZE
+        value: "true"
+      - key: DB_LOGGING
+        value: "false"
+      - key: LOG_LEVEL
+        value: info
+
+      - key: JWT_EXPIRES_IN
+        value: 7d
+      # Strong secret generated once by Render and kept across deploys.
+      - key: JWT_SECRET
+        generateValue: true
+
+      # ── Secrets — set these in the Render dashboard (sync: false) ─────────────
+      # External Neon Postgres connection string (must include ?sslmode=require).
+      - key: DATABASE_URL
+        sync: false
+      # Google OAuth Web client id used to verify ID tokens from the app.
+      - key: GOOGLE_CLIENT_ID
+        sync: false
+
+      # Public base URL the app uses for absolute audio links (local-disk
+      # fallback only). Set to this service's Render URL, e.g.
+      # https://hey-podcast-api.onrender.com — or rely on Cloudinary instead.
+      - key: PUBLIC_URL
+        sync: false
+
+      # ── Generation engine (optional) — without both keys, placeholder audio ──
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: DEEPGRAM_API_KEY
+        sync: false
+
+      # ── Cloudinary (recommended in production) ───────────────────────────────
+      # Render's disk is ephemeral, so locally-written audio is lost on every
+      # deploy/restart. Configure Cloudinary so generated audio is served via CDN.
+      - key: CLOUDINARY_CLOUD_NAME
+        sync: false
+      - key: CLOUDINARY_API_KEY
+        sync: false
+      - key: CLOUDINARY_API_SECRET
+        sync: false
+
+      # ── Digest cron schedules ─────────────────────────────────────────────────
+      # NOTE: in-process node-cron only fires while the service is awake. On the
+      # free plan the service sleeps after inactivity, so these may be skipped.
+      # Set to "off" to disable, or use a Render Cron Job for reliable scheduling.
+      - key: DIGEST_CRON
+        value: 30 4 * * *
+      - key: GLOBAL_DIGEST_CRON
+        value: 0 2 * * *
+      - key: DIGEST_TZ
+        value: Asia/Dhaka

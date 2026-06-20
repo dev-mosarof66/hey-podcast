@@ -1,0 +1,37 @@
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+build/
+web-build/
+
+# Env / secrets — never commit these (keep .env.example)
+.env
+.env.*
+!.env.example
+
+# Logs
+*.log
+npm-debug.log*
+yarn-error.log*
+
+# Expo / React Native
+.expo/
+*.tsbuildinfo
+expo-env.d.ts
+*.jks
+*.p8
+*.p12
+*.key
+*.mobileprovision
+*.orig.*
+
+# Native build artifacts
+android/
+ios/
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.idea/

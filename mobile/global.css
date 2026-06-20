@@ -1,0 +1,27 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* Space-separated RGB channels (not hex) so `rgb(var(--x) / <alpha-value>)`
+       in tailwind.config can apply opacity modifiers (bg-foreground/5, etc.)
+       on NATIVE too — on React Native, opacity on a var-based color otherwise
+       renders at full opacity. */
+    --background: 241 245 249; /* #f1f5f9 */
+    --foreground: 2 6 24; /* #020618 */
+    --card: 255 255 255; /* #ffffff — opaque surface that lifts off the bg */
+
+    /* Brand colors (theme-independent) */
+    --primary: 114 19 120; /* #721378 */
+    --secondary: 237 106 255; /* #ed6aff */
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --background: 2 6 24; /* #020618 */
+      --foreground: 248 250 252; /* #f8fafc */
+      --card: 22 22 31; /* #16161f — elevated above the dark bg */
+    }
+  }
+}
