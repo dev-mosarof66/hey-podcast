@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import Slider from '@react-native-community/slider';
@@ -27,6 +27,23 @@ export default function PlayerScreen() {
     skip: !episode,
   });
   const [drag, setDrag] = useState<number | null>(null);
+
+  // Karaoke-style auto-scroll: keep the line currently being spoken in view.
+  // Each turn reports its Y offset via onLayout; we scroll only when the active
+  // line *changes* (not on every position tick) to avoid jitter mid-line.
+  const scrollRef = useRef<ScrollView>(null);
+  const turnY = useRef<number[]>([]);
+  const lastIdx = useRef(-1);
+  useEffect(() => {
+    const tr = full?.transcript ?? [];
+    const idx = tr.findIndex(
+      (t) => t.start != null && position >= t.start && (t.end == null || position < t.end)
+    );
+    if (idx < 0 || idx === lastIdx.current) return;
+    lastIdx.current = idx;
+    const y = turnY.current[idx];
+    if (y != null) scrollRef.current?.scrollTo({ y: Math.max(0, y - hp(6)), animated: true });
+  }, [full, position]);
 
   if (!episode) {
     return (
@@ -134,7 +151,7 @@ export default function PlayerScreen() {
             className="max-w-md text-center text-3xl font-extrabold leading-10 text-foreground">
             {episode.title}
           </Text>
-          <Text className="text-md mt-3 text-foreground/70">{hostsLabel} · HOSTS</Text>
+          <Text className="text-md mt-3 text-foreground/70">{hostsLabel} · AI Host</Text>
         </View>
 
         {/* Transcript loading — placeholder while the full episode is fetched */}
@@ -156,18 +173,24 @@ export default function PlayerScreen() {
         {/* Transcript — fills the gap between meta and the pinned controls */}
         {transcript.length > 0 && (
           <ScrollView
+            ref={scrollRef}
             className="flex-1"
             showsVerticalScrollIndicator={false}
             contentContainerStyle={{ paddingHorizontal: wp(6), paddingBottom: inset.bottom + hp(22) }}>
-            <Text className="mb-3 text-xs font-bold uppercase tracking-widest text-foreground/50">
+            <Text className="mb-3 text-sm font-bold uppercase tracking-widest text-foreground/50">
               Transcript
             </Text>
             {transcript.map((t, i) => {
               const isActive = i === activeIdx;
               return (
-                <View key={i} className="mb-3">
+                <View
+                  key={i}
+                  className="mb-3"
+                  onLayout={(e) => {
+                    turnY.current[i] = e.nativeEvent.layout.y;
+                  }}>
                   <Text
-                    className="text-xs font-bold"
+                    className="text-sm font-bold"
                     style={{
                       color: t.speaker === 'A' ? accent : Colors.secondary,
                       opacity: isActive ? 1 : 0.7,
@@ -175,7 +198,7 @@ export default function PlayerScreen() {
                     {full?.hosts?.[t.speaker] ?? hostName(t.speaker)}
                   </Text>
                   <Text
-                    className={`mt-0.5 text-sm leading-5 ${
+                    className={`mt-0.5 text-md leading-5 ${
                       isActive ? 'font-semibold text-foreground' : 'text-foreground/40'
                     }`}>
                     {t.text}

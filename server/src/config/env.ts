@@ -52,6 +52,11 @@ export const env = {
   // users via the feed). Runs earlier, at 2 AM by default. Set to 'off' to disable.
   globalDigestCron: process.env.GLOBAL_DIGEST_CRON ?? '0 2 * * *',
   digestTz: process.env.DIGEST_TZ ?? 'Asia/Dhaka',
+
+  // Shared secret protecting POST /api/cron/run so an external scheduler
+  // (GitHub Actions, cron-job.org, Render Cron…) can trigger the digest
+  // batches without an expiring admin JWT. Unset → the endpoint is disabled.
+  cronSecret: process.env.CRON_SECRET ?? '',
 };
 
 /** True only when both engine keys are present — otherwise we stub generation. */

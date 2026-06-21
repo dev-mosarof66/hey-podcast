@@ -7,6 +7,7 @@ import configRoutes from './config.routes';
 import notificationRoutes from './notification.routes';
 import adminRoutes from './admin.routes';
 import promoRoutes from './promo.routes';
+import cronRoutes from './cron.routes';
 
 const router = Router();
 
@@ -22,5 +23,6 @@ router.use('/config', configRoutes);
 router.use('/notifications', notificationRoutes);
 router.use('/admin', adminRoutes);
 router.use('/promo', promoRoutes);
+router.use('/cron', cronRoutes);
 
 export default router;

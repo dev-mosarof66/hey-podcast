@@ -126,7 +126,7 @@ export default function GeneratingScreen() {
           <View className="bg-foreground/10 mt-8 h-1.5 w-full overflow-hidden rounded-full">
             <Animated.View className="bg-primary h-full rounded-full" style={{ width }} />
           </View>
-          <Text className="text-foreground/30 mt-4 text-center text-xs">
+          <Text className="text-foreground/50 mt-4 text-center text-sm">
             This usually takes under a minute. You can leave — it&rsquo;ll appear on Home.
           </Text>
         </View>
