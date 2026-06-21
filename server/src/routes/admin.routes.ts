@@ -8,6 +8,7 @@ import {
   listAdminEpisodes,
   listAdminTopics,
   listPromoCodes,
+  retryAdminEpisode,
   runGlobalBatch,
   setPromoCodeDisabled,
 } from '../controllers/admin.controller';
@@ -24,6 +25,7 @@ router.get('/topics', listAdminTopics);
 router.get('/episodes', listAdminEpisodes);
 router.post('/topics/:id/generate', generateTopicPod);
 router.post('/global-run', runGlobalBatch);
+router.post('/episodes/:id/retry', retryAdminEpisode);
 router.delete('/episodes/:id', deleteAdminEpisode);
 router.get('/promo-codes', listPromoCodes);
 router.post('/promo-codes', generatePromoCode);

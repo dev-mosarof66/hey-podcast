@@ -2,10 +2,12 @@ import { NextFunction, Request, Response } from 'express';
 import { AppDataSource } from '../data-source';
 import { Topic } from '../entities/Topic';
 import { PromoCode } from '../entities/PromoCode';
+import { GenerationJob } from '../entities/GenerationJob';
 import { EpisodeRepository } from '../repositories/episode.repository';
 import { HttpError } from '../utils/http-error';
 import { engineEnabled } from '../config/env';
 import { generateGlobalDigests, generateTopicDigest } from '../engine/digest';
+import { enqueue } from '../engine/worker';
 
 const TRIAL_DAYS = 7;
 const CODE_CHARS = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
@@ -76,6 +78,31 @@ export async function deleteAdminEpisode(req: Request, res: Response, next: Next
   try {
     await EpisodeRepository.delete({ id: req.params.id });
     res.status(204).end();
+  } catch (err) {
+    next(err);
+  }
+}
+
+// POST /api/admin/episodes/:id/retry — re-queue a failed episode's generation.
+// Reuses the same episode row (its `prompt` already holds the topic) and adds
+// a fresh job, so the worker re-runs the full pipeline.
+export async function retryAdminEpisode(req: Request, res: Response, next: NextFunction) {
+  try {
+    if (!engineEnabled) throw new HttpError(503, 'Generation engine is not configured');
+    const episode = await EpisodeRepository.findOneBy({ id: req.params.id });
+    if (!episode) throw new HttpError(404, 'Episode not found');
+    if (episode.status !== 'failed') {
+      throw new HttpError(409, `Only failed episodes can be retried (this one is '${episode.status}')`);
+    }
+
+    episode.status = 'queued';
+    await EpisodeRepository.save(episode);
+
+    const jobRepo = AppDataSource.getRepository(GenerationJob);
+    await jobRepo.save(jobRepo.create({ episodeId: episode.id, trigger: 'on_demand', status: 'queued' }));
+
+    enqueue(episode.id);
+    res.status(202).json({ episodeId: episode.id, status: episode.status });
   } catch (err) {
     next(err);
   }

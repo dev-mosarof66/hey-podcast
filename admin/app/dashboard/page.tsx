@@ -102,6 +102,18 @@ export default function DashboardPage() {
     }
   };
 
+  const retry = async (id: string) => {
+    setBusy(id);
+    try {
+      await api(`/admin/episodes/${id}/retry`, { method: 'POST' });
+      await loadEpisodes();
+    } catch (err) {
+      alert((err as Error).message);
+    } finally {
+      setBusy(null);
+    }
+  };
+
   const logout = () => {
     clearToken();
     router.replace('/login');
@@ -203,6 +215,15 @@ export default function DashboardPage() {
                     className="text-xs text-neutral-400 hover:text-neutral-200">
                     audio
                   </a>
+                )}
+
+                {e.status === 'failed' && (
+                  <button
+                    onClick={() => retry(e.id)}
+                    disabled={busy === e.id}
+                    className="text-xs font-semibold text-brand hover:text-brand/80 disabled:opacity-50">
+                    {busy === e.id ? 'retrying…' : 'retry'}
+                  </button>
                 )}
 
                 <button
