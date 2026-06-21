@@ -1,5 +1,5 @@
 import { ENGINE } from '../config/engine';
-import { genai } from './gemini';
+import { geminiGenerate } from './gemini';
 
 /**
  * Stage 1 — pull fresh, factual material on a topic using Gemini with Google
@@ -8,7 +8,6 @@ import { genai } from './gemini';
  * call and returns plain text.)
  */
 export async function fetchBrief(topic: string): Promise<string> {
-  const ai = genai();
   const prompt = `You are a sharp news researcher. Using up-to-date web results, write a tight factual brief on the most important and genuinely interesting recent developments about: ${topic}.
 
 - 6 to 10 concise bullet points.
@@ -16,7 +15,7 @@ export async function fetchBrief(topic: string): Promise<string> {
 - Strongly prefer the last 3 days. Include specifics — names, figures, dates, places.
 - No introduction, no conclusion, no headings. Bullet points only.`;
 
-  const res = await ai.models.generateContent({
+  const res = await geminiGenerate({
     model: ENGINE.textModel,
     contents: prompt,
     config: {

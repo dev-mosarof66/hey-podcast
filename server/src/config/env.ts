@@ -31,7 +31,20 @@ export const env = {
 
   // ── Generation engine (optional; absent → falls back to placeholder audio) ──
   // Gemini powers the LLM stages (fetch brief + write the two-host script).
-  geminiApiKey: process.env.GEMINI_API_KEY ?? '',
+  // Supports multiple keys for free-tier failover: tried in order, and on a
+  // quota error (429) we fall back to the next. Provide extras via
+  // GEMINI_API_KEY_2 / _3, or a comma-separated GEMINI_API_KEYS list.
+  // NOTE: the free 20/day limit is PER PROJECT — extra keys only help if they
+  // belong to a *different* Google Cloud project/account.
+  geminiApiKeys: [
+    process.env.GEMINI_API_KEY,
+    process.env.GEMINI_API_KEY_2,
+    process.env.GEMINI_API_KEY_3,
+    ...(process.env.GEMINI_API_KEYS ?? '').split(','),
+  ]
+    .map((k) => (k ?? '').trim())
+    .filter(Boolean)
+    .filter((k, i, arr) => arr.indexOf(k) === i),
   // Deepgram powers TTS (one voice per host, stitched in Node).
   deepgramApiKey: process.env.DEEPGRAM_API_KEY ?? '',
   // Base URL the mobile app uses to reach this server, for building absolute
@@ -60,7 +73,7 @@ export const env = {
 };
 
 /** True only when both engine keys are present — otherwise we stub generation. */
-export const engineEnabled = Boolean(env.geminiApiKey && env.deepgramApiKey);
+export const engineEnabled = Boolean(env.geminiApiKeys.length && env.deepgramApiKey);
 
 /** True when Cloudinary is configured — otherwise audio is served from local disk. */
 export const cloudinaryEnabled = Boolean(

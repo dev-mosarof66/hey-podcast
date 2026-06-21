@@ -1,6 +1,6 @@
 import { Type } from '@google/genai';
 import { ENGINE } from '../config/engine';
-import { genai } from './gemini';
+import { geminiGenerate } from './gemini';
 
 export interface ScriptTurn {
   speaker: 'A' | 'B';
@@ -21,7 +21,6 @@ export interface Script {
  * change it carefully.
  */
 export async function writeScript(brief: string, minutes = ENGINE.minutes): Promise<Script> {
-  const ai = genai();
   const [a, b] = ENGINE.hosts;
   const words = minutes * 150;
 
@@ -49,7 +48,7 @@ RETURN JSON
 BRIEF:
 ${brief}`;
 
-  const res = await ai.models.generateContent({
+  const res = await geminiGenerate({
     model: ENGINE.textModel,
     contents: prompt,
     config: {
