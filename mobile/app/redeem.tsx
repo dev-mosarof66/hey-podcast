@@ -3,6 +3,7 @@ import {
   Animated,
   Keyboard,
   Platform,
+  Pressable,
   Text,
   TextInput,
   TouchableWithoutFeedback,
@@ -11,7 +12,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { router } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import Toast from 'react-native-toast-message';
 
 import { Colors } from 'constants/Colors';
@@ -24,6 +25,8 @@ export default function RedeemScreen() {
   const [focused, setFocused] = useState(false);
   const [redeem, { isLoading }] = useRedeemPromoMutation();
   const [trialDays, setTrialDays] = useState<number | null>(null);
+  // Opened from Profile (vs. the onboarding/paywall flow) → offer a way back.
+  const fromProfile = useLocalSearchParams<{ from?: string }>().from === 'profile';
 
   // Slide the centered content up so it re-centers in the space above the
   // keyboard (same Keyboard-listener approach as the auth screens - reliable
@@ -76,43 +79,50 @@ export default function RedeemScreen() {
   }
 
   return (
-    <SafeAreaView className="flex-1 bg-background" edges={['top', 'bottom']}>
+    <SafeAreaView className="relative flex-1 bg-background" edges={['top', 'bottom']}>
+      <View className='w-full flex items-end justify-end pr-6'>
+        {fromProfile && (
+          <Pressable hitSlop={12} onPress={() => router.back()} style={{ top: wp(3) }}>
+            <Ionicons name="close" size={28} color={Colors.muted} />
+          </Pressable>
+        )}
+      </View>
       <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
-      <Animated.View
-        className="flex flex-1 items-center justify-center"
-        style={{ transform: [{ translateY }] }}>
-        <View className="mb-5 h-20 w-20 items-center justify-center rounded-full bg-primary/10">
-          <Ionicons name="gift" size={wp(10)} color={Colors.primary} />
-        </View>
-        <Text className="text-2xl font-bold text-foreground">Have a promo code?</Text>
-        <Text className="text-md mt-1 text-foreground/50">
-          Access all the premium features for 7 - day.
-        </Text>
+        <Animated.View
+          className="flex flex-1 items-center justify-center"
+          style={{ transform: [{ translateY }] }}>
+          <View className="mb-5 h-20 w-20 items-center justify-center rounded-full bg-primary/10">
+            <Ionicons name="gift" size={wp(10)} color={Colors.primary} />
+          </View>
+          <Text className="text-2xl font-bold text-foreground">Have a promo code?</Text>
+          <Text className="text-md mt-1 text-foreground/50">
+            Access all the premium features for 7 - day.
+          </Text>
 
-        <TextInput
-          value={code}
-          onChangeText={setCode}
-          placeholder="PROMO CODE"
-          placeholderTextColor={Colors.muted}
-          autoCapitalize="characters"
-          autoCorrect={false}
-          autoFocus
-          onFocus={() => setFocused(true)}
-          onBlur={() => setFocused(false)}
-          onSubmitEditing={onRedeem}
-          className={`mt-6 w-96 rounded-2xl border px-4 py-4 text-base tracking-widest text-foreground ${
-            focused ? 'border-primary' : 'border-foreground/15'
-          }`}
-        />
-
-        <View className="w-96 mt-4">
-          <PrimaryButton
-            text={isLoading ? 'Redeeming...' : 'Get 7 - Day Trial'}
-            onPress={onRedeem}
-            disabled={!code.trim() || isLoading}
+          <TextInput
+            value={code}
+            onChangeText={setCode}
+            placeholder="PROMO CODE"
+            placeholderTextColor={Colors.muted}
+            autoCapitalize="characters"
+            autoCorrect={false}
+            autoFocus
+            onFocus={() => setFocused(true)}
+            onBlur={() => setFocused(false)}
+            onSubmitEditing={onRedeem}
+            className={`mt-6 w-96 rounded-2xl border px-4 py-4 text-base tracking-widest text-foreground ${
+              focused ? 'border-primary' : 'border-foreground/15'
+            }`}
           />
-        </View>
-      </Animated.View>
+
+          <View className="mt-4 w-96">
+            <PrimaryButton
+              text={isLoading ? 'Redeeming...' : 'Get 7 - Day Trial'}
+              onPress={onRedeem}
+              disabled={!code.trim() || isLoading}
+            />
+          </View>
+        </Animated.View>
       </TouchableWithoutFeedback>
     </SafeAreaView>
   );
@@ -135,7 +145,7 @@ function UnlockingView({ trialDays }: { trialDays: number }) {
       Animated.sequence([
         Animated.timing(glow, { toValue: 1, duration: 700, useNativeDriver: true }),
         Animated.timing(glow, { toValue: 0.3, duration: 700, useNativeDriver: true }),
-      ]),
+      ])
     );
     pulse.start();
 
@@ -169,7 +179,7 @@ function UnlockingView({ trialDays }: { trialDays: number }) {
         <Text className="mt-7 text-2xl font-bold tracking-tight text-foreground">
           {done ? 'Premium unlocked!' : 'Unlocking premium...'}
         </Text>
-        <Text className="mt-2 text-center text-md text-foreground/50">
+        <Text className="text-md mt-2 text-center text-foreground/50">
           {done
             ? `Your ${trialDays}-day free trial is now active.`
             : 'Setting up your premium experience.'}

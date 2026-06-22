@@ -95,29 +95,34 @@ export default function DiscoverScreen() {
           Following Topics
         </Text>
         {topicsLoading ? (
-          <View className="flex-row gap-2">
+          <View className="flex-row flex-wrap justify-between gap-y-3">
             {Array.from({ length: 4 }).map((_, i) => (
-              <Shimmer key={i} className="h-9 w-24 rounded-full" />
+              <Shimmer key={i} className="h-28 w-[48%] rounded-2xl" />
             ))}
           </View>
         ) : followedTopics.length ? (
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={{ gap: wp(2) }}>
+          <View className="flex-row flex-wrap justify-between gap-y-3">
             {followedTopics.map((t) => {
               const ui = topicUi(t.slug);
               return (
-                <View
+                <Pressable
                   key={t.id}
-                  className="flex-row items-center gap-2 rounded-full px-4 py-2"
-                  style={{ backgroundColor: ui.color + '1A' }}>
-                  <View className="h-3 w-3 rounded-full" style={{ backgroundColor: ui.color }} />
-                  <Text className="text-foreground text-md font-medium">{t.label}</Text>
-                </View>
+                  onPress={() => router.push({ pathname: '/topic/[id]', params: { id: t.id } })}
+                  className="bg-card w-[48%] gap-3 rounded-2xl p-4 active:opacity-70"
+                  style={cardShadow}>
+                  <View className="flex-row items-center justify-between">
+                    <View
+                      className="h-11 w-11 items-center justify-center rounded-full"
+                      style={{ backgroundColor: ui.color + '22' }}>
+                      <Ionicons name={ui.icon} size={22} color={ui.color} />
+                    </View>
+                    <Ionicons name="checkmark-circle" size={20} color={ui.color} />
+                  </View>
+                  <Text className="text-foreground text-lg font-semibold">{t.label}</Text>
+                </Pressable>
               );
             })}
-          </ScrollView>
+          </View>
         ) : (
           <Text className="text-foreground/40 text-sm">
             Follow topics below to fill your daily feed.

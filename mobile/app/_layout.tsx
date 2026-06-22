@@ -7,6 +7,7 @@ import { Provider } from 'react-redux';
 import Toast from 'react-native-toast-message';
 
 import { AuthProvider } from 'components/AuthProvider';
+import { DownloadsProvider } from 'components/DownloadsProvider';
 import { PlayerProvider } from 'components/PlayerProvider';
 import { PushProvider } from 'components/PushProvider';
 import { ThemeProvider } from 'components/ThemeProvider';
@@ -17,6 +18,7 @@ export default function RootLayout() {
     <Provider store={store}>
       <AuthProvider>
         <ThemeProvider>
+          <DownloadsProvider>
           <PlayerProvider>
             <PushProvider>
               <SafeAreaProvider>
@@ -37,6 +39,7 @@ export default function RootLayout() {
               </SafeAreaProvider>
             </PushProvider>
           </PlayerProvider>
+          </DownloadsProvider>
         </ThemeProvider>
       </AuthProvider>
       {/* Top-level toast overlay */}

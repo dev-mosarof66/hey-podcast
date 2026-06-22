@@ -214,7 +214,7 @@ export const api = createApi({
       invalidatesTags: ['Topics', 'Episodes', 'Continue'],
     }),
 
-    generateEpisode: builder.mutation<ApiEpisode, { prompt: string }>({
+    generateEpisode: builder.mutation<ApiEpisode, { prompt: string; topicId?: string }>({
       query: (body) => ({ url: 'episodes/generate', method: 'POST', body }),
       invalidatesTags: ['Episodes'],
     }),

@@ -6,6 +6,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import Toast from 'react-native-toast-message';
 
+import { Colors } from 'constants/Colors';
 import { useAuth } from 'components/AuthProvider';
 import { ConfirmDialog } from 'components/ConfirmDialog';
 import { DeleteAccountDialog } from 'components/DeleteAccountDialog';
@@ -148,8 +149,9 @@ export default function ProfileScreen() {
           </View>
         </LinearGradient>
 
-        {/* Premium card */}
-        <Pressable onPress={() => router.navigate('/redeem')} className="active:opacity-90">
+        {/* Premium card — billing isn't live yet, so this previews plans
+            ("Coming soon") and routes to pricing rather than promo redemption. */}
+        <Pressable onPress={() => router.navigate('/pricing')} className="active:opacity-90">
           <LinearGradient
             colors={['#F59E0B', '#D97706']}
             start={{ x: 0, y: 0 }}
@@ -183,11 +185,28 @@ export default function ProfileScreen() {
               </View>
               <View className="rounded-full bg-white px-4 py-2">
                 <Text className="text-sm font-bold" style={{ color: '#D97706' }}>
-                  {subLoading ? '···' : isPremium ? 'Manage' : 'Upgrade'}
+                  {subLoading ? '···' : isPremium ? 'Manage' : 'Coming soon'}
                 </Text>
               </View>
             </View>
           </LinearGradient>
+        </Pressable>
+
+        {/* Promo code */}
+        <Pressable
+          onPress={() => router.navigate({ pathname: '/redeem', params: { from: 'profile' } })}
+          style={[{ marginTop: hp(1.5) }, cardShadow]}
+          className="bg-card flex-row items-center gap-3 rounded-2xl p-4 active:opacity-80">
+          <View
+            className="h-11 w-11 items-center justify-center rounded-full"
+            style={{ backgroundColor: Colors.primary + '1A' }}>
+            <Ionicons name="gift-outline" size={22} color={Colors.primary} />
+          </View>
+          <View className="flex-1">
+            <Text className="text-foreground text-base font-bold">Have a promo code?</Text>
+            <Text className="text-foreground/60 mt-0.5 text-sm">Redeem it for premium access</Text>
+          </View>
+          <Ionicons name="chevron-forward" size={20} color={Colors.muted} />
         </Pressable>
 
         {/* Preferences */}
@@ -241,8 +260,13 @@ export default function ProfileScreen() {
           <SettingRow
             icon="help-circle-outline"
             label="Help & feedback"
+            value="Upcoming"
             onPress={() =>
-              Linking.openURL('mailto:support@heypodcast.app?subject=Hey Podcast feedback')
+              Toast.show({
+                type: 'info',
+                text1: 'Coming soon',
+                text2: 'Help & feedback is on the way.',
+              })
             }
           />
           <SettingRow

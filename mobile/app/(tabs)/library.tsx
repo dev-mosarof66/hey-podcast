@@ -1,5 +1,5 @@
 import { useCallback, useState } from 'react';
-import { Pressable, ScrollView, Text, View } from 'react-native';
+import { ActivityIndicator, Pressable, ScrollView, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -9,6 +9,7 @@ import type { Episode, IoniconName } from 'constants/types';
 import { SegmentedTabs } from 'components/SegmentedTabs';
 import { Shimmer } from 'components/Shimmer';
 import { usePlayerActions } from 'components/PlayerProvider';
+import { useDownloadActions, useDownloads } from 'components/DownloadsProvider';
 import { useCardShadow } from 'hooks/useCardShadow';
 import { useGetContinueQuery, useGetSavedQuery } from 'store/api';
 import { toUiContinue, toUiEpisode } from 'utils/episode';
@@ -20,23 +21,59 @@ const SEGMENTS = [
   { id: 'downloads', label: 'Downloads' },
 ];
 
-function LibraryRow({ episode, onPress }: { episode: Episode; onPress?: () => void }) {
+/** Download / remove toggle for an episode, driven by the on-device manifest. */
+function DownloadButton({ episode }: { episode: Episode }) {
+  const { downloads, progress } = useDownloads();
+  const { download, remove } = useDownloadActions();
+  if (!episode.audioUrl) return null;
+
+  const isDownloaded = !!downloads[episode.id];
+  const prog = progress[episode.id];
+  const busy = prog != null;
+
   return (
-    <Pressable onPress={onPress} className="flex-row items-center gap-3 py-3 active:opacity-70">
-      <View
-        className="h-12 w-12 items-center justify-center rounded-xl"
-        style={{ backgroundColor: episode.color }}>
-        <Ionicons name={episode.icon} size={22} color="#fff" />
+    <Pressable
+      hitSlop={10}
+      disabled={busy}
+      onPress={() => (isDownloaded ? remove(episode.id) : download(episode))}
+      className="active:opacity-60">
+      {busy ? (
+        <ActivityIndicator size="small" color={Colors.primary} />
+      ) : (
+        <Ionicons
+          name={isDownloaded ? 'cloud-done' : 'download-outline'}
+          size={24}
+          color={isDownloaded ? Colors.primary : Colors.muted}
+        />
+      )}
+    </Pressable>
+  );
+}
+
+function LibraryCard({ episode, onPress }: { episode: Episode; onPress?: () => void }) {
+  const cardShadow = useCardShadow();
+  return (
+    <Pressable
+      onPress={onPress}
+      style={cardShadow}
+      className="bg-card w-full gap-3 rounded-2xl p-4 active:opacity-80">
+      <View className="flex-row items-center justify-between">
+        <View
+          className="h-10 w-10 items-center justify-center rounded-full"
+          style={{ backgroundColor: episode.color }}>
+          <Ionicons name={episode.icon} size={20} color="#fff" />
+        </View>
+        <View className="flex-row items-center gap-3">
+          <DownloadButton episode={episode} />
+          <Ionicons name="play-circle" size={30} color={Colors.primary} />
+        </View>
       </View>
-      <View className="flex-1">
-        <Text numberOfLines={1} className="text-foreground text-base font-medium">
-          {episode.title}
-        </Text>
-        <Text className="text-foreground/45 mt-0.5 text-xs">
-          {episode.topic} · {episode.durationMin} min
-        </Text>
-      </View>
-      <Ionicons name="play-circle" size={32} color={Colors.primary} />
+      <Text numberOfLines={2} className="text-foreground text-sm font-semibold leading-5">
+        {episode.title}
+      </Text>
+      <Text className="text-foreground/40 text-[11px]">
+        {episode.topic} · {episode.durationMin} min
+      </Text>
     </Pressable>
   );
 }
@@ -47,15 +84,18 @@ function ContinueCard({ episode, onPress }: { episode: Episode; onPress?: () => 
   return (
     <Pressable
       onPress={onPress}
-      style={[{ width: wp(60) }, cardShadow]}
-      className="bg-card gap-3 rounded-2xl p-4 active:opacity-80">
+      style={cardShadow}
+      className="bg-card w-full gap-3 rounded-2xl p-4 active:opacity-80">
       <View className="flex-row items-center justify-between">
         <View
           className="h-10 w-10 items-center justify-center rounded-full"
           style={{ backgroundColor: episode.color }}>
           <Ionicons name={episode.icon} size={20} color="#fff" />
         </View>
-        <Ionicons name="play-circle" size={30} color={Colors.primary} />
+        <View className="flex-row items-center gap-3">
+          <DownloadButton episode={episode} />
+          <Ionicons name="play-circle" size={30} color={Colors.primary} />
+        </View>
       </View>
       <Text numberOfLines={2} className="text-foreground text-sm font-semibold leading-5">
         {episode.title}
@@ -113,7 +153,8 @@ export default function LibraryScreen() {
 
   const savedEpisodes = saved.map(toUiEpisode);
   const historyEpisodes = cont.map(toUiContinue);
-  const downloads = saved.filter((s) => s.downloaded).map(toUiEpisode);
+  const { downloads: localDownloads } = useDownloads();
+  const downloaded = Object.values(localDownloads).map((d) => d.episode);
 
   const play = (ep: Episode) => {
     playEpisode(ep);
@@ -143,7 +184,7 @@ export default function LibraryScreen() {
                 Saved episodes
               </Text>
               {savedEpisodes.map((e) => (
-                <LibraryRow key={e.id} episode={e} onPress={() => play(e)} />
+                <LibraryCard key={e.id} episode={e} onPress={() => play(e)} />
               ))}
             </>
           ) : (
@@ -163,14 +204,9 @@ export default function LibraryScreen() {
               <Text className="text-foreground text-lg font-bold tracking-tight">
                 Continue listening
               </Text>
-              <ScrollView
-                horizontal
-                showsHorizontalScrollIndicator={false}
-                contentContainerStyle={{ gap: wp(3) }}>
-                {historyEpisodes.map((e) => (
-                  <ContinueCard key={e.id} episode={e} onPress={() => play(e)} />
-                ))}
-              </ScrollView>
+              {historyEpisodes.map((e) => (
+                <ContinueCard key={e.id} episode={e} onPress={() => play(e)} />
+              ))}
             </View>
           ) : (
             <EmptyState
@@ -182,10 +218,8 @@ export default function LibraryScreen() {
 
         {/* Downloads */}
         {segment === 'downloads' &&
-          (savedLoading ? (
-            <ListSkeleton />
-          ) : downloads.length ? (
-            downloads.map((e) => <LibraryRow key={e.id} episode={e} onPress={() => play(e)} />)
+          (downloaded.length ? (
+            downloaded.map((e) => <LibraryCard key={e.id} episode={e} onPress={() => play(e)} />)
           ) : (
             <EmptyState
               icon="cloud-download-outline"

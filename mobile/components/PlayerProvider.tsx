@@ -16,6 +16,7 @@ import {
 } from 'expo-audio';
 
 import type { Episode } from 'constants/types';
+import { useDownloadActions } from 'components/DownloadsProvider';
 import { useUpdateProgressMutation } from 'store/api';
 
 /** Frequently-changing playback state (re-renders on every status tick). */
@@ -73,6 +74,9 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
   const [updateProgress] = useUpdateProgressMutation();
   const updateProgressRef = useRef(updateProgress);
   updateProgressRef.current = updateProgress;
+
+  // Resolve a downloaded copy so playback works offline. Stable identity.
+  const { localUri } = useDownloadActions();
 
   const saveProgress = useCallback((positionSec: number, completed = false) => {
     const ep = episodeRef.current;
@@ -150,7 +154,8 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
           isBuffering: true,
         }));
 
-        player.replace({ uri: ep.audioUrl });
+        // Prefer the on-device file when downloaded → plays without a network.
+        player.replace({ uri: localUri(ep.id) ?? ep.audioUrl });
         try {
           player.setPlaybackRate(rateRef.current);
         } catch {
@@ -222,7 +227,7 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
         }));
       },
     }),
-    [saveProgress]
+    [saveProgress, localUri]
   );
 
   return (

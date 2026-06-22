@@ -28,6 +28,11 @@ export class GenerationJob {
   @JoinColumn({ name: 'episodeId' })
   episode: Episode;
 
+  // Topic this job is for (digest's primary topic, the global topic, or a
+  // prompt-matched topic). The worker applies it to the episode when it's ready.
+  @Column({ type: 'uuid', nullable: true })
+  topicId: string | null;
+
   @Column({ type: 'enum', enum: JOB_TRIGGER })
   trigger: JobTrigger;
 

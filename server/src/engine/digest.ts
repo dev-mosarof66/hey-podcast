@@ -4,7 +4,9 @@ import { Episode } from '../entities/Episode';
 import { GenerationJob, JobTrigger } from '../entities/GenerationJob';
 import { Topic } from '../entities/Topic';
 import { TopicFollow } from '../entities/TopicFollow';
+import { GlobalDigestState } from '../entities/GlobalDigestState';
 import { logger } from '../config/logger';
+import { env } from '../config/env';
 import { enqueue } from './worker';
 
 /** Start of the current day — used to make the cron runs idempotent. */
@@ -33,9 +35,17 @@ export async function generateUserDigest(
   trigger: JobTrigger
 ): Promise<string | null> {
   const followRepo = AppDataSource.getRepository(TopicFollow);
-  const follows = await followRepo.find({ where: { userId }, relations: { topic: true } });
+  const follows = await followRepo.find({
+    where: { userId },
+    relations: { topic: true },
+    order: { createdAt: 'ASC' },
+  });
   const labels = follows.map((f) => f.topic?.label).filter(Boolean) as string[];
   if (!labels.length) return null;
+
+  // Tag the digest with the user's primary (first-followed) topic so it shows a
+  // topic-specific icon/label in the app rather than the generic "For You".
+  const primaryTopicId = follows.find((f) => f.topic)?.topicId ?? null;
 
   const episodeRepo = AppDataSource.getRepository(Episode);
   const jobRepo = AppDataSource.getRepository(GenerationJob);
@@ -50,12 +60,17 @@ export async function generateUserDigest(
     status: 'generating',
     isShared: false,
     userId,
-    topicId: null,
+    topicId: primaryTopicId,
     publishedAt: null,
   });
   await episodeRepo.save(episode);
 
-  const job = jobRepo.create({ episodeId: episode.id, trigger, status: 'queued' });
+  const job = jobRepo.create({
+    episodeId: episode.id,
+    topicId: primaryTopicId,
+    trigger,
+    status: 'queued',
+  });
   await jobRepo.save(job);
 
   enqueue(episode.id);
@@ -129,36 +144,68 @@ export async function generateTopicDigest(
   });
   await episodeRepo.save(episode);
 
-  const job = jobRepo.create({ episodeId: episode.id, trigger, status: 'queued' });
+  const job = jobRepo.create({ episodeId: episode.id, topicId, trigger, status: 'queued' });
   await jobRepo.save(job);
 
   enqueue(episode.id);
   return episode.id;
 }
 
+// How many topics the global cron generates per day. Kept low to stay under
+// Gemini's free-tier daily quota; the rest are covered on following days.
+const GLOBAL_TOPICS_PER_DAY = 2;
+
+/** Today's date key in the digest timezone, e.g. '2026-06-22'. */
+function todayKey(): string {
+  return new Intl.DateTimeFormat('en-CA', { timeZone: env.digestTz }).format(new Date());
+}
+
 /**
- * The scheduled global batch: one fresh shared episode per topic in the
- * catalog, generated once for everyone. Idempotent per topic per day.
+ * The scheduled global batch: generates a small, fixed number of shared topic
+ * digests per day (GLOBAL_TOPICS_PER_DAY), rotating through the catalog via a
+ * persistent cursor so every topic gets refreshed over time. A per-day guard
+ * (lastRunOn) keeps it to exactly N/day even if the cron fires more than once
+ * (e.g. in-process cron + external cron-job.org). Episodes are enqueued in
+ * order; the worker processes them one at a time, so they run sequentially.
  */
 export async function generateGlobalDigests(): Promise<void> {
   const topicRepo = AppDataSource.getRepository(Topic);
+  const stateRepo = AppDataSource.getRepository(GlobalDigestState);
 
-  // Topics that already have a shared cron episode today.
-  const todays = await todaysCronEpisodes();
-  const done = new Set(
-    todays.filter((e) => e.isShared && e.topicId).map((e) => e.topicId) as string[]
-  );
-
-  const topics = await topicRepo.find();
-  let queued = 0;
-  for (const topic of topics) {
-    if (done.has(topic.id)) continue;
-    const id = await generateTopicDigest(topic.id, topic.label, 'cron');
-    if (id) queued++;
+  // Stable order so the cursor advances predictably across runs.
+  const topics = await topicRepo.find({ order: { createdAt: 'ASC', id: 'ASC' } });
+  if (!topics.length) {
+    logger.info('global digest cron: no topics, skipping');
+    return;
   }
 
+  let state = await stateRepo.findOneBy({ id: 1 });
+  if (!state) state = stateRepo.create({ id: 1, cursor: 0, lastRunOn: null });
+
+  const today = todayKey();
+  if (state.lastRunOn === today) {
+    logger.info({ today }, 'global digest cron: already ran today, skipping');
+    return;
+  }
+
+  // Pick the next N topics starting at the cursor, wrapping around the catalog.
+  const count = Math.min(GLOBAL_TOPICS_PER_DAY, topics.length);
+  const picked: Topic[] = [];
+  for (let i = 0; i < count; i++) {
+    picked.push(topics[(state.cursor + i) % topics.length]);
+  }
+
+  for (const topic of picked) {
+    await generateTopicDigest(topic.id, topic.label, 'cron');
+  }
+
+  // Advance the cursor and stamp today so a repeat run is a no-op.
+  state.cursor = (state.cursor + count) % topics.length;
+  state.lastRunOn = today;
+  await stateRepo.save(state);
+
   logger.info(
-    { topics: topics.length, skipped: done.size, queued },
-    'global digest cron: queued topic digests'
+    { picked: picked.map((t) => t.label), nextCursor: state.cursor, today },
+    'global digest cron: queued rotating topics'
   );
 }

@@ -5,11 +5,35 @@ import { SAMPLE_AUDIO } from '../seed';
 import { engineEnabled } from '../config/env';
 import { AppDataSource } from '../data-source';
 import { GenerationJob } from '../entities/GenerationJob';
+import { TopicFollow } from '../entities/TopicFollow';
+import { Topic } from '../entities/Topic';
 import { enqueue } from '../engine/worker';
 import { generateUserDigest } from '../engine/digest';
 
 function titleFromPrompt(prompt: string): string {
   return prompt.length > 80 ? `${prompt.slice(0, 77)}…` : prompt;
+}
+
+/**
+ * Best-effort topic for an AI-generated episode, so it carries a topic-specific
+ * icon/label instead of the generic "For You". Prefers an explicit topicId from
+ * the client; otherwise matches the prompt against the catalog by label/slug.
+ * Returns null when nothing matches (a truly free-form prompt).
+ */
+async function resolveTopicId(prompt: string, explicitId?: unknown): Promise<string | null> {
+  const topicRepo = AppDataSource.getRepository(Topic);
+
+  if (explicitId) {
+    const byId = await topicRepo.findOneBy({ id: String(explicitId) });
+    if (byId) return byId.id;
+  }
+
+  const text = prompt.toLowerCase();
+  const topics = await topicRepo.find();
+  const match =
+    topics.find((t) => text.includes(t.label.toLowerCase())) ??
+    topics.find((t) => text.includes(t.slug.toLowerCase()));
+  return match?.id ?? null;
 }
 
 // GET /api/episodes — the feed (ready episodes, newest first, with topic).
@@ -59,6 +83,9 @@ export async function generateEpisode(req: Request, res: Response, next: NextFun
       throw new HttpError(400, 'A prompt is required');
     }
 
+    // Associate the generated episode with a topic when we can identify one.
+    const topicId = await resolveTopicId(prompt, req.body.topicId);
+
     if (!engineEnabled) {
       // No GEMINI/DEEPGRAM keys → instant placeholder (keeps the app working).
       const stub = EpisodeRepository.create({
@@ -70,7 +97,7 @@ export async function generateEpisode(req: Request, res: Response, next: NextFun
         status: 'ready',
         isShared: false,
         userId,
-        topicId: null,
+        topicId,
         publishedAt: new Date(),
       });
       await EpisodeRepository.save(stub);
@@ -87,13 +114,18 @@ export async function generateEpisode(req: Request, res: Response, next: NextFun
       status: 'generating',
       isShared: false,
       userId,
-      topicId: null,
+      topicId,
       publishedAt: null,
     });
     await EpisodeRepository.save(episode);
 
     const jobRepo = AppDataSource.getRepository(GenerationJob);
-    const job = jobRepo.create({ episodeId: episode.id, trigger: 'on_demand', status: 'queued' });
+    const job = jobRepo.create({
+      episodeId: episode.id,
+      topicId,
+      trigger: 'on_demand',
+      status: 'queued',
+    });
     await jobRepo.save(job);
 
     enqueue(episode.id);
@@ -115,6 +147,18 @@ export async function generateDigest(req: Request, res: Response, next: NextFunc
     if (!engineEnabled) {
       // No GEMINI/DEEPGRAM keys → instant placeholder digest so onboarding and
       // the free daily digest keep working (mirrors generateEpisode's stub).
+      const followRepo = AppDataSource.getRepository(TopicFollow);
+      const follows = await followRepo.find({
+        where: { userId },
+        relations: { topic: true },
+        order: { createdAt: 'ASC' },
+      });
+      if (!follows.length) {
+        throw new HttpError(400, 'Follow at least one topic to get a digest');
+      }
+      // Tag with the primary (first-followed) topic for a topic-specific icon.
+      const primaryTopicId = follows.find((f) => f.topic)?.topicId ?? null;
+
       const stub = EpisodeRepository.create({
         title: 'Your daily digest',
         prompt: 'Your personalized daily digest',
@@ -124,7 +168,7 @@ export async function generateDigest(req: Request, res: Response, next: NextFunc
         status: 'ready',
         isShared: false,
         userId,
-        topicId: null,
+        topicId: primaryTopicId,
         publishedAt: new Date(),
       });
       await EpisodeRepository.save(stub);

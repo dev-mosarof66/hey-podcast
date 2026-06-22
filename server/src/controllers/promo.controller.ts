@@ -18,7 +18,6 @@ export async function redeemPromo(req: Request, res: Response, next: NextFunctio
     const promo = await repo.findOne({ where: { code } });
     if (!promo) throw new HttpError(404, 'Invalid promo code');
     if (promo.disabled) throw new HttpError(403, 'This code is no longer active');
-    if (promo.redeemed) throw new HttpError(409, 'This code has already been used');
 
     // Grant / extend a premium trial.
     const renewsAt = new Date(Date.now() + promo.trialDays * 86_400_000);
@@ -37,8 +36,9 @@ export async function redeemPromo(req: Request, res: Response, next: NextFunctio
     }
     await SubscriptionRepository.save(sub);
 
-    // Burn the code.
-    promo.redeemed = true;
+    // Record the redemption. Codes are reusable — they stay valid for every
+    // redemption until an admin disables them.
+    promo.redemptionCount += 1;
     promo.redeemedBy = userId;
     promo.redeemedAt = new Date();
     await repo.save(promo);

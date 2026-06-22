@@ -61,6 +61,9 @@ async function processEpisode(episodeId: string): Promise<void> {
     episode.hosts = result.hosts;
     episode.status = 'ready';
     episode.publishedAt = new Date();
+    // Carry the topic decided when the job was queued onto the ready episode, so
+    // it shows a topic-specific icon/label. Only override when the job has one.
+    if (job?.topicId) episode.topicId = job.topicId;
     await episodeRepo.save(episode);
 
     if (job) {

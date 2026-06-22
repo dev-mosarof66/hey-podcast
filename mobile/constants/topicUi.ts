@@ -25,7 +25,10 @@ export const TOPIC_UI: Record<string, TopicUi> = {
   food: { icon: 'restaurant', color: '#f97316' },
 };
 
-export const FALLBACK_TOPIC_UI: TopicUi = { icon: 'sparkles', color: '#721378' };
+// Topicless episodes — the personalized "Your daily digest" and on-demand
+// generations — have no single topic, so they use this intentional digest
+// identity instead of a per-topic icon.
+export const FALLBACK_TOPIC_UI: TopicUi = { icon: 'newspaper', color: '#721378' };
 
 export function topicUi(slug?: string): TopicUi {
   return (slug && TOPIC_UI[slug]) || FALLBACK_TOPIC_UI;

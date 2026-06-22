@@ -38,12 +38,20 @@ export default function SplashScreen() {
     if (!ready) return;
     if (profilePending) return;
 
-    const isPremium = sub?.tier === 'premium';
+    // Premium counts only while the trial/plan is still within its window.
+    const premiumActive =
+      sub?.tier === 'premium' &&
+      (sub.renewsAt == null || new Date(sub.renewsAt).getTime() > Date.now());
+    // Gate to /redeem ONLY when we positively know they're not on an active
+    // plan (sub loaded AND not premium). If the subscription query never
+    // resolved (e.g. server cold start + bailout), fail open to home rather
+    // than trapping an already-premium user on the promo screen.
+    const shouldGate = sub != null && !premiumActive;
     const dest = !isAuthed
       ? '/(auth)/login'
       : me && !me.onboarded
         ? '/personalize'
-        : !isPremium
+        : shouldGate
           ? '/redeem'
           : '/(tabs)/home';
     const timer = setTimeout(() => router.replace(dest), 600);

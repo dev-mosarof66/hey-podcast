@@ -103,7 +103,8 @@ export default function PromoPage() {
       <section className="mb-8 rounded-2xl border border-neutral-800 bg-neutral-900 p-6">
         <h2 className="text-sm font-semibold">Generate a 7-day free-trial code</h2>
         <p className="mt-1 text-sm text-neutral-400">
-          Each code is one-time use. Share it with a user to unlock a 7-day premium trial.
+          Each code is reusable — share it with anyone to unlock a 7-day premium trial. It
+          keeps working until you disable it.
         </p>
         <button
           onClick={generate}
@@ -147,43 +148,38 @@ export default function PromoPage() {
                 className="flex items-center gap-3 border-b border-neutral-800 bg-neutral-900 px-4 py-3 last:border-b-0">
                 <code
                   className={`flex-1 font-bold tracking-widest ${
-                    c.redeemed || c.disabled ? 'text-neutral-500 line-through' : ''
+                    c.disabled ? 'text-neutral-500 line-through' : ''
                   }`}>
                   {c.code}
                 </code>
                 <span className="text-xs text-neutral-500">{c.trialDays}-day</span>
+                <span className="text-xs text-neutral-500">{c.redemptionCount} uses</span>
 
-                {/* Status badge */}
-                {c.redeemed ? (
-                  <span className="rounded-full bg-neutral-500/15 px-2 py-0.5 text-xs text-neutral-400">
-                    used
-                  </span>
-                ) : c.disabled ? (
+                {/* Status badge — codes are reusable until disabled */}
+                {c.disabled ? (
                   <span className="rounded-full bg-amber-500/15 px-2 py-0.5 text-xs text-amber-400">
                     disabled
                   </span>
                 ) : (
                   <span className="rounded-full bg-green-500/15 px-2 py-0.5 text-xs text-green-400">
-                    available
+                    active
                   </span>
                 )}
 
                 {/* Actions */}
-                {!c.redeemed && !c.disabled && (
+                {!c.disabled && (
                   <button
                     onClick={() => copy(c.code)}
                     className="text-xs text-neutral-400 hover:text-neutral-200">
                     {copied === c.code ? 'copied' : 'copy'}
                   </button>
                 )}
-                {!c.redeemed && (
-                  <button
-                    onClick={() => toggleDisabled(c)}
-                    disabled={acting === c.id}
-                    className="text-xs text-amber-400/80 hover:text-amber-300 disabled:opacity-40">
-                    {c.disabled ? 'enable' : 'disable'}
-                  </button>
-                )}
+                <button
+                  onClick={() => toggleDisabled(c)}
+                  disabled={acting === c.id}
+                  className="text-xs text-amber-400/80 hover:text-amber-300 disabled:opacity-40">
+                  {c.disabled ? 'enable' : 'disable'}
+                </button>
                 <button
                   onClick={() => remove(c)}
                   disabled={acting === c.id}

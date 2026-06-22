@@ -47,8 +47,8 @@ export interface AdminPromoCode {
   id: string;
   code: string;
   trialDays: number;
-  redeemed: boolean;
   disabled: boolean;
+  redemptionCount: number;
   redeemedBy: string | null;
   redeemedAt: string | null;
   createdAt: string;

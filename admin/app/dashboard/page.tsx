@@ -80,7 +80,13 @@ export default function DashboardPage() {
   };
 
   const runBatch = async () => {
-    if (!confirm('Generate a pod for EVERY topic? This can be a lot of generation.')) return;
+    if (
+      !confirm(
+        "Run today's global batch (2 rotating topics)? No-op if it already ran today. " +
+          'To generate a specific topic now, use its "Generate pod" button instead.'
+      )
+    )
+      return;
     setBusy('batch');
     try {
       await api('/admin/global-run', { method: 'POST' });
@@ -154,7 +160,7 @@ export default function DashboardPage() {
             onClick={runBatch}
             disabled={busy === 'batch'}
             className="rounded-md border border-neutral-700 px-3 py-1.5 text-sm hover:bg-neutral-800 disabled:opacity-50">
-            {busy === 'batch' ? 'Queuing…' : 'Run all topics'}
+            {busy === 'batch' ? 'Queuing…' : 'Run daily batch (2)'}
           </button>
         </div>
 

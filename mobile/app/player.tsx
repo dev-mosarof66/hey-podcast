@@ -11,6 +11,7 @@ import { HOSTS_LABEL, hostName } from 'constants/hosts';
 import { Shimmer } from 'components/Shimmer';
 import { useTheme } from 'components/ThemeProvider';
 import { PLAYBACK_RATES, usePlayer, usePlayerActions } from 'components/PlayerProvider';
+import { useDownloadActions, useDownloads } from 'components/DownloadsProvider';
 import { useGetEpisodeQuery, useGetSavedQuery, useToggleSavedMutation } from 'store/api';
 import { formatTime, hp, wp } from 'utils/utils';
 
@@ -23,6 +24,8 @@ export default function PlayerScreen() {
   const { toggle, seekTo, skip, setRate } = usePlayerActions();
   const { data: saved = [] } = useGetSavedQuery();
   const [toggleSaved] = useToggleSavedMutation();
+  const { downloads, progress } = useDownloads();
+  const { download, remove } = useDownloadActions();
   const { data: full, isLoading: fullLoading } = useGetEpisodeQuery(episode?.id ?? '', {
     skip: !episode,
   });
@@ -60,6 +63,8 @@ export default function PlayerScreen() {
   const accent = episode.color;
   const fg = dark ? '#FFFFFF' : '#0F172A';
   const isSaved = saved.some((s) => s.id === episode.id);
+  const isDownloaded = !!downloads[episode.id];
+  const isDownloading = progress[episode.id] != null;
   const transcript = full?.transcript ?? [];
   const hostsLabel = full?.hosts ? `${full.hosts.A} & ${full.hosts.B}` : HOSTS_LABEL;
   const activeIdx = transcript.findIndex(
@@ -81,15 +86,31 @@ export default function PlayerScreen() {
         <Text className="text-md font-bold uppercase tracking-widest text-foreground/70">
           Now Playing
         </Text>
-        <TouchableOpacity
-          hitSlop={12}
-          onPress={() => toggleSaved({ id: episode.id, saved: !isSaved })}>
-          <Ionicons
-            name={isSaved ? 'bookmark' : 'bookmark-outline'}
-            size={24}
-            color={isSaved ? Colors.primary : Colors.muted}
-          />
-        </TouchableOpacity>
+        <View className="flex-row items-center gap-4">
+          <TouchableOpacity
+            hitSlop={12}
+            disabled={isDownloading}
+            onPress={() => (isDownloaded ? remove(episode.id) : download(episode))}>
+            {isDownloading ? (
+              <ActivityIndicator size="small" color={Colors.primary} />
+            ) : (
+              <Ionicons
+                name={isDownloaded ? 'cloud-done' : 'cloud-download-outline'}
+                size={24}
+                color={isDownloaded ? Colors.primary : Colors.muted}
+              />
+            )}
+          </TouchableOpacity>
+          <TouchableOpacity
+            hitSlop={12}
+            onPress={() => toggleSaved({ id: episode.id, saved: !isSaved })}>
+            <Ionicons
+              name={isSaved ? 'bookmark' : 'bookmark-outline'}
+              size={24}
+              color={isSaved ? Colors.primary : Colors.muted}
+            />
+          </TouchableOpacity>
+        </View>
       </View>
 
       <View className="flex-1">

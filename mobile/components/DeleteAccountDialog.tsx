@@ -1,5 +1,15 @@
-import { useEffect, useState } from 'react';
-import { Keyboard, Modal, Pressable, Text, TextInput, View } from 'react-native';
+import { useEffect, useRef, useState } from 'react';
+import {
+  Animated,
+  Keyboard,
+  Modal,
+  Platform,
+  Pressable,
+  Text,
+  TextInput,
+  View,
+  type KeyboardEvent,
+} from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
 import { Colors } from 'constants/Colors';
@@ -17,16 +27,34 @@ interface Props {
 export function DeleteAccountDialog({ visible, loading, onConfirm, onCancel }: Props) {
   const [text, setText] = useState('');
   const canDelete = text.trim() === CONFIRM_PHRASE;
-  const [kbUp, setKbUp] = useState(false);
 
+  // Smoothly lift the card above the keyboard (animated translateY) instead of
+  // snapping between layouts. Half the keyboard height recenters it.
+  const lift = useRef(new Animated.Value(0)).current;
   useEffect(() => {
-    const show = Keyboard.addListener('keyboardDidShow', () => setKbUp(true));
-    const hide = Keyboard.addListener('keyboardDidHide', () => setKbUp(false));
+    const showEvt = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
+    const hideEvt = Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide';
+    const onShow = (e: KeyboardEvent) => {
+      Animated.timing(lift, {
+        toValue: -e.endCoordinates.height / 2,
+        duration: e.duration || 220,
+        useNativeDriver: true,
+      }).start();
+    };
+    const onHide = (e: KeyboardEvent) => {
+      Animated.timing(lift, {
+        toValue: 0,
+        duration: e.duration || 200,
+        useNativeDriver: true,
+      }).start();
+    };
+    const show = Keyboard.addListener(showEvt, onShow);
+    const hide = Keyboard.addListener(hideEvt, onHide);
     return () => {
       show.remove();
       hide.remove();
     };
-  }, []);
+  }, [lift]);
 
   const close = () => {
     setText('');
@@ -40,11 +68,12 @@ export function DeleteAccountDialog({ visible, loading, onConfirm, onCancel }: P
       animationType="fade"
       statusBarTranslucent
       onRequestClose={close}>
-      <View
-        className={`flex-1 items-center px-8 ${kbUp ? 'justify-start pt-16' : 'justify-center'}`}>
+      <View className="flex-1 items-center justify-center px-8">
         <Pressable className="absolute inset-0 bg-black/50" onPress={close} />
 
-        <View className="bg-card w-full rounded-3xl p-6">
+        <Animated.View
+          className="bg-card w-full rounded-3xl p-6"
+          style={{ transform: [{ translateY: lift }] }}>
           <View className="items-center">
             <View className="h-14 w-14 items-center justify-center rounded-full bg-red-500/10">
               <Ionicons name="trash-outline" size={24} color="#ef4444" />
@@ -81,11 +110,11 @@ export function DeleteAccountDialog({ visible, loading, onConfirm, onCancel }: P
                 canDelete && !loading ? 'bg-red-500 active:opacity-90' : 'bg-red-500/40'
               }`}>
               <Text className="text-base font-semibold text-white">
-                {loading ? 'Deleting…' : 'Delete'}
+                {loading ? 'Deleting...' : 'Delete'}
               </Text>
             </Pressable>
           </View>
-        </View>
+        </Animated.View>
       </View>
     </Modal>
   );

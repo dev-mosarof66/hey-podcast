@@ -9,7 +9,6 @@ import Toast from 'react-native-toast-message';
 import { PrimaryButton } from 'components/Button';
 import { Colors } from 'constants/Colors';
 import type { IoniconName } from 'constants/types';
-import { useSubscribeMutation } from 'store/api';
 import { hp, wp } from 'utils/utils';
 
 const FEATURES = [
@@ -44,19 +43,16 @@ function Radio({ active }: { active: boolean }) {
 export default function PricingScreen() {
   const [plan, setPlan] = useState<PlanId>('monthly');
   const [method, setMethod] = useState('google');
-  const [subscribe, { isLoading }] = useSubscribeMutation();
-
   const dismiss = () => router.back();
-  const selectedPlan = PLANS.find((p) => p.id === plan)!;
 
-  const onSubscribe = async () => {
-    try {
-      await subscribe({ plan }).unwrap();
-      Toast.show({ type: 'success', text1: 'Welcome to Premium!', text2: 'Enjoy unlimited episodes.' });
-      router.replace('/(tabs)/home');
-    } catch {
-      Toast.show({ type: 'error', text1: 'Subscription failed', text2: 'Please try again.' });
-    }
+  // Billing isn't live yet — let users preview the plans, but don't take
+  // payments. Promo codes remain the way to unlock premium for now.
+  const onSubscribe = () => {
+    Toast.show({
+      type: 'info',
+      text1: 'Coming soon',
+      text2: "Premium billing isn't live yet. Have a promo code? Redeem it from Profile.",
+    });
   };
 
   return (
@@ -155,12 +151,10 @@ export default function PricingScreen() {
 
       {/* Footer */}
       <View className="gap-2 px-6 pb-2 pt-3">
-        <PrimaryButton
-          text={isLoading ? 'Processing…' : `Subscribe — ${selectedPlan.price}${selectedPlan.per}`}
-          onPress={onSubscribe}
-          disabled={isLoading}
-        />
-        <Text className="text-foreground/40 text-center text-xs">Cancel anytime.</Text>
+        <PrimaryButton text="Coming soon" onPress={onSubscribe} />
+        <Text className="text-foreground/40 text-center text-xs">
+          Premium billing is coming soon.
+        </Text>
         <Pressable hitSlop={8} className="self-center py-1" onPress={dismiss}>
           <Text className="text-foreground/50 text-sm font-semibold">Maybe later</Text>
         </Pressable>
