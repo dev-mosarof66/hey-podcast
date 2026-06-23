@@ -1,5 +1,8 @@
 import { Column, CreateDateColumn, Entity, Index, PrimaryGeneratedColumn } from 'typeorm';
 
+export const USER_ROLE = ['user', 'admin', 'super-admin'] as const;
+export type UserRole = (typeof USER_ROLE)[number];
+
 @Entity({ name: 'users' })
 export class User {
   @PrimaryGeneratedColumn('uuid')
@@ -7,6 +10,11 @@ export class User {
 
   @Column({ type: 'varchar', length: 255, unique: true })
   email: string;
+
+  // Access level. 'user' = app user, 'admin' = panel access,
+  // 'super-admin' = can manage other admins.
+  @Column({ type: 'enum', enum: USER_ROLE, default: 'user' })
+  role: UserRole;
 
   @Column({ type: 'varchar', length: 120, nullable: true })
   displayName: string | null;

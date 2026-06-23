@@ -61,6 +61,12 @@ export class Episode {
   @JoinColumn({ name: 'topicId' })
   topic: Topic | null;
 
+  // B2B: when set, this episode belongs to a client Briefing (a branded show)
+  // and appears in that briefing's public podcast RSS feed.
+  @Index()
+  @Column({ type: 'uuid', nullable: true })
+  briefingId: string | null;
+
   @Index()
   @Column({ type: 'uuid', nullable: true })
   userId: string | null;

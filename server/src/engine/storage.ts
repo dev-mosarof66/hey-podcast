@@ -44,8 +44,12 @@ export async function saveAudio(buffer: Buffer, ext = 'wav'): Promise<{ file: st
   const id = randomUUID();
 
   if (cloudinaryEnabled) {
-    const url = await uploadToCloudinary(buffer, id);
-    logger.info({ url }, 'storage: uploaded to Cloudinary');
+    const wavUrl = await uploadToCloudinary(buffer, id);
+    // Serve as MP3: Cloudinary transcodes the source WAV on delivery (CDN-cached).
+    // MP3 is ~10x smaller and is required by Apple Podcasts / Spotify (they
+    // reject WAV) and plays everywhere.
+    const url = wavUrl.replace(/\.wav$/i, '.mp3');
+    logger.info({ url }, 'storage: uploaded to Cloudinary (served as MP3)');
     return { file: id, url };
   }
 

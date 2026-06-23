@@ -8,6 +8,7 @@ import notificationRoutes from './notification.routes';
 import adminRoutes from './admin.routes';
 import promoRoutes from './promo.routes';
 import cronRoutes from './cron.routes';
+import { getBriefingFeed } from '../controllers/feed.controller';
 
 const router = Router();
 
@@ -24,5 +25,8 @@ router.use('/notifications', notificationRoutes);
 router.use('/admin', adminRoutes);
 router.use('/promo', promoRoutes);
 router.use('/cron', cronRoutes);
+
+// Public podcast RSS feed for a B2B briefing (no auth — add to Spotify/Apple).
+router.get('/feed/:slug', getBriefingFeed);
 
 export default router;

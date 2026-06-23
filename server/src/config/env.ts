@@ -29,6 +29,12 @@ export const env = {
     .map((e) => e.trim().toLowerCase())
     .filter(Boolean),
 
+  // Emails promoted to super-admin on boot (can manage other admins).
+  superAdminEmails: (process.env.SUPER_ADMIN_EMAILS ?? 'mdmosarofhossain066@gmail.com')
+    .split(',')
+    .map((e) => e.trim().toLowerCase())
+    .filter(Boolean),
+
   // ── Generation engine (optional; absent → falls back to placeholder audio) ──
   // Gemini powers the LLM stages (fetch brief + write the two-host script).
   // Supports multiple keys for free-tier failover: tried in order, and on a

@@ -4,6 +4,7 @@ import { AppDataSource } from './data-source';
 import { env, engineEnabled, cloudinaryEnabled } from './config/env';
 import { logger } from './config/logger';
 import { seed } from './seed';
+import { ensureAdmins } from './bootstrap/ensure-admins';
 import { ensureAudioDir } from './engine/storage';
 import { resumePending } from './engine/worker';
 import { startScheduler } from './scheduler';
@@ -14,6 +15,7 @@ async function bootstrap() {
     logger.info('Database connected (NeonDB)');
 
     await seed();
+    await ensureAdmins();
 
     // Engine: make sure the audio dir exists and pick up any unfinished jobs.
     ensureAudioDir();

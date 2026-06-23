@@ -13,6 +13,8 @@ import { PushToken } from './entities/PushToken';
 import { Notification } from './entities/Notification';
 import { PromoCode } from './entities/PromoCode';
 import { GlobalDigestState } from './entities/GlobalDigestState';
+import { Client } from './entities/Client';
+import { Briefing } from './entities/Briefing';
 
 export const AppDataSource = new DataSource({
   type: 'postgres',
@@ -34,6 +36,8 @@ export const AppDataSource = new DataSource({
     Notification,
     PromoCode,
     GlobalDigestState,
+    Client,
+    Briefing,
   ],
   migrations: ['src/migrations/*.ts'],
   subscribers: [],

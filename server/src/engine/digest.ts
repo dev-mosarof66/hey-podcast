@@ -151,6 +151,40 @@ export async function generateTopicDigest(
   return episode.id;
 }
 
+/**
+ * Queue an episode for a B2B briefing (a branded client show). Like the topic
+ * digest, but tagged with briefingId so it lands in that briefing's RSS feed.
+ */
+export async function generateBriefingEpisode(briefing: {
+  id: string;
+  title: string;
+  prompt: string;
+}): Promise<string> {
+  const episodeRepo = AppDataSource.getRepository(Episode);
+  const jobRepo = AppDataSource.getRepository(GenerationJob);
+
+  const episode = episodeRepo.create({
+    title: briefing.title,
+    prompt: briefing.prompt,
+    summary: null,
+    durationSec: null,
+    audioUrl: null,
+    status: 'generating',
+    isShared: false,
+    userId: null,
+    topicId: null,
+    briefingId: briefing.id,
+    publishedAt: null,
+  });
+  await episodeRepo.save(episode);
+
+  const job = jobRepo.create({ episodeId: episode.id, trigger: 'on_demand', status: 'queued' });
+  await jobRepo.save(job);
+
+  enqueue(episode.id);
+  return episode.id;
+}
+
 // How many topics the global cron generates per day. Kept low to stay under
 // Gemini's free-tier daily quota; the rest are covered on following days.
 const GLOBAL_TOPICS_PER_DAY = 2;
