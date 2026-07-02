@@ -1,13 +1,14 @@
 import { useState } from 'react';
-import { Pressable, Text, View } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import { ActivityIndicator, Pressable, Text, View } from 'react-native';
 import { Link, router } from 'expo-router';
 import Toast from 'react-native-toast-message';
+import { useFonts, Sora_500Medium, Sora_600SemiBold } from '@expo-google-fonts/sora';
 
 import { AuthShell } from 'components/AuthShell';
 import { useAuth } from 'components/AuthProvider';
 import { PrimaryButton } from 'components/Button';
 import { TextField } from 'components/TextField';
+import { useTheme } from 'components/ThemeProvider';
 import { Colors } from 'constants/Colors';
 import { useRegisterMutation } from 'store/api';
 
@@ -25,11 +26,18 @@ function errMessage(e: unknown): string {
 }
 
 export default function RegisterScreen() {
+  const dark = useTheme().scheme === 'dark';
+  const [fontsLoaded] = useFonts({ Sora_500Medium, Sora_600SemiBold });
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [register, { isLoading }] = useRegisterMutation();
   const { signIn } = useAuth();
+
+  // Theme-aware foreground (replaces the foreground NativeWind tokens).
+  const fg = dark ? '248, 250, 252' : '2, 6, 24';
+  const medFont = fontsLoaded ? 'Sora_500Medium' : undefined;
+  const semiFont = fontsLoaded ? 'Sora_600SemiBold' : undefined;
 
   const onSubmit = async () => {
     if (password.length < 8) {
@@ -43,7 +51,7 @@ export default function RegisterScreen() {
         displayName: name.trim() || undefined,
       }).unwrap();
       await signIn(res.token);
-      // New account → pick topics first.
+      // New account -> pick topics first.
       router.replace('/personalize');
     } catch (e) {
       Toast.show({ type: 'error', text1: 'Sign up failed', text2: errMessage(e) });
@@ -52,7 +60,7 @@ export default function RegisterScreen() {
 
   return (
     <AuthShell title="Create account" subtitle="Start your personal podcast feed">
-      <View className="gap-3.5">
+      <View style={{ gap: 14 }}>
         <TextField
           label="Name"
           icon="person-outline"
@@ -78,21 +86,27 @@ export default function RegisterScreen() {
           onChangeText={setPassword}
         />
 
-        <PrimaryButton
-          text={isLoading ? 'Creating…' : 'Create account'}
-          onPress={onSubmit}
-          disabled={isLoading}
-          style={CTA_GLOW}
-          styles="mt-1"
-        />
+        <PrimaryButton onPress={onSubmit} disabled={isLoading} style={[CTA_GLOW, { marginTop: 4 }]}>
+          {isLoading ? (
+            <ActivityIndicator color="white" />
+          ) : (
+            <Text style={{ fontSize: 18, fontWeight: '600', color: '#ffffff', fontFamily: semiFont }}>
+              Create account
+            </Text>
+          )}
+        </PrimaryButton>
       </View>
 
       {/* Switch */}
-      <View className="mt-5 flex-row justify-center gap-1">
-        <Text className="text-foreground/60 text-md">Already have an account?</Text>
+      <View style={{ marginTop: 20, flexDirection: 'row', justifyContent: 'center', gap: 4 }}>
+        <Text style={{ fontSize: 15, color: `rgba(${fg}, 0.6)`, fontFamily: medFont }}>
+          Already have an account?
+        </Text>
         <Link href="/(auth)/login" asChild>
           <Pressable hitSlop={8}>
-            <Text className="text-primary text-md font-bold">Log in</Text>
+            <Text style={{ fontSize: 15, fontWeight: '700', color: Colors.primary, fontFamily: semiFont }}>
+              Log in
+            </Text>
           </Pressable>
         </Link>
       </View>

@@ -55,7 +55,7 @@ async function getExpoPushToken(): Promise<string | null> {
 /** The digest notification's content — shared by the schedule and the preview. */
 const DIGEST_CONTENT: Notifications.NotificationContentInput = {
   title: '🎧 Your daily digest is ready',
-  body: 'Open Hey Podcast to listen to today’s episode.',
+  body: 'Open Daily Download to listen to today’s episode.',
   sound: 'default',
   data: { type: 'episode_ready' },
 };
@@ -97,7 +97,9 @@ export function PushProvider({ children }: { children: ReactNode }) {
     if (!isAuthed || setup.current) return;
     (async () => {
       try {
-        if (!(await ensurePermission())) return;
+        // Don't prompt here — the Home tab shows a branded popup that routes to
+        // Settings. Only wire things up once the user has actually granted it.
+        if (!(await Notifications.getPermissionsAsync()).granted) return;
         await ensureAndroidChannel();
 
         // Recurring daily reminder (works everywhere, incl. Expo Go).

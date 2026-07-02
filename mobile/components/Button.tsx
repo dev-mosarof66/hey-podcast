@@ -1,34 +1,40 @@
-import { Pressable, Text, type PressableProps } from 'react-native';
+import { type ReactNode } from 'react';
+import { StyleSheet, TouchableOpacity, type TouchableOpacityProps } from 'react-native';
 
-interface ButtonProps extends Omit<PressableProps, 'children' | 'className'> {
-  /** Button label. */
-  text: string;
-  /** Extra classes for the container (width, margins, etc.). */
-  styles?: string;
-  /** Extra classes for the label. */
-  textStyles?: string;
+import { Colors } from 'constants/Colors';
+import { wp } from 'utils/utils';
+
+interface ButtonProps extends TouchableOpacityProps {
+  children?: ReactNode;
 }
 
-const BASE_CONTAINER =
-  'h-14 w-full flex-row items-center justify-center rounded-full px-6 active:scale-[0.98]';
-const BASE_TEXT = 'text-lg font-semibold';
-
-/** Solid, filled call-to-action button. */
-export const PrimaryButton = ({ text, styles = '', textStyles = '', ...props }: ButtonProps) => {
+/** Solid, filled call-to-action button. Compose the label as children. */
+export const PrimaryButton = ({ children, style, ...props }: ButtonProps) => {
   return (
-    <Pressable className={`${BASE_CONTAINER} bg-primary  ${styles}`} {...props}>
-      <Text className={`${BASE_TEXT} text-white ${textStyles}`}>{text}</Text>
-    </Pressable>
+    <TouchableOpacity activeOpacity={0.85} style={[styles.base, styles.primary, style]} {...props}>
+      {children}
+    </TouchableOpacity>
   );
 };
 
 /** Bordered, transparent variant for secondary actions. */
-export const OutlineButton = ({ text, styles = '', textStyles = '', ...props }: ButtonProps) => {
+export const OutlineButton = ({ children, style, ...props }: ButtonProps) => {
   return (
-    <Pressable
-      className={`${BASE_CONTAINER} border-2 border-primary bg-transparent active:bg-primary/10 ${styles}`}
-      {...props}>
-      <Text className={`${BASE_TEXT} text-primary ${textStyles}`}>{text}</Text>
-    </Pressable>
+    <TouchableOpacity activeOpacity={0.85} style={[styles.base, styles.outline, style]} {...props}>
+      {children}
+    </TouchableOpacity>
   );
 };
+
+const styles = StyleSheet.create({
+  base: {
+    height: wp(12),
+    width: '100%',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 9999,
+  },
+  primary: { backgroundColor: Colors.primary },
+  outline: { borderWidth: 2, borderColor: Colors.primary, backgroundColor: 'transparent' },
+});

@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "234393830399",
+    "project_id": "hey-podcast",
+    "storage_bucket": "hey-podcast.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:234393830399:android:19b890ab03e8a001551dca",
+        "android_client_info": {
+          "package_name": "com.heypodcast.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDhWJTHb2368BERbhRRVg13a_QhoQhZZqw"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

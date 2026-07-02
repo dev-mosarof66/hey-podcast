@@ -1,0 +1,36 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <style>
+      * { margin: 0; box-sizing: border-box; }
+      html, body { width: 1024px; height: 1024px; }
+      .icon {
+        width: 1024px; height: 1024px; position: relative; overflow: hidden;
+        display: flex; align-items: center; justify-content: center;
+        background: linear-gradient(135deg, #8b2fe8 0%, #7008e7 52%, #4c1d95 100%);
+      }
+      .ring { position: absolute; border-radius: 50%; border-style: solid; border-color: #9fe1cb; }
+      .r1 { width: 660px; height: 660px; border-width: 10px; opacity: 0.26; }
+      .r2 { width: 480px; height: 480px; border-width: 13px; opacity: 0.5; }
+      .core {
+        width: 320px; height: 320px; border-radius: 50%;
+        background: rgba(255, 255, 255, 0.16);
+        display: flex; align-items: center; justify-content: center;
+      }
+      .play {
+        width: 0; height: 0; border-style: solid;
+        border-width: 84px 0 84px 138px;
+        border-color: transparent transparent transparent #ffffff;
+        margin-left: 28px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="icon">
+      <div class="ring r1"></div>
+      <div class="ring r2"></div>
+      <div class="core"><div class="play"></div></div>
+    </div>
+  </body>
+</html>

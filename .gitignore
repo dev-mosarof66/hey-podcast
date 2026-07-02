@@ -11,6 +11,12 @@ web-build/
 .env.*
 !.env.example
 
+# Firebase service-account key (FCM V1) — SECRET, never commit.
+# google-services.json is a client config and IS committed (build needs it).
+private-key.json
+*-firebase-adminsdk-*.json
+google-service-account*.json
+
 # Logs
 *.log
 npm-debug.log*

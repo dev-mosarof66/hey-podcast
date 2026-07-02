@@ -9,11 +9,23 @@ import adminRoutes from './admin.routes';
 import promoRoutes from './promo.routes';
 import cronRoutes from './cron.routes';
 import { getBriefingFeed } from '../controllers/feed.controller';
+import { engineEnabled, cloudinaryEnabled, env } from '../config/env';
 
 const router = Router();
 
 router.get('/health', (_req, res) => {
-  res.json({ status: 'ok', timestamp: new Date().toISOString() });
+  // Booleans/counts only — no secret values — so you can verify live config.
+  res.json({
+    status: 'ok',
+    timestamp: new Date().toISOString(),
+    engine: {
+      enabled: engineEnabled, // both Gemini + Deepgram present → real generation
+      geminiKeys: env.geminiApiKeys.length,
+      deepgram: Boolean(env.deepgramApiKey),
+      cloudinary: cloudinaryEnabled, // else audio → ephemeral local disk (lost on Render)
+      cronSecret: Boolean(env.cronSecret),
+    },
+  });
 });
 
 router.use('/auth', authRoutes);

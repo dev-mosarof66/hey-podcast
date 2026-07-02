@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Animated, Easing, StyleSheet, View } from 'react-native';
+import { Animated, Easing, StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 
 /**
@@ -7,7 +7,13 @@ import { LinearGradient } from 'expo-linear-gradient';
  * (e.g. "h-6 w-3/4 rounded-md"). The base tint comes from the theme so it
  * works in light + dark.
  */
-export function Shimmer({ className = '' }: { className?: string }) {
+export function Shimmer({
+  className = '',
+  style,
+}: {
+  className?: string;
+  style?: StyleProp<ViewStyle>;
+}) {
   const [width, setWidth] = useState(0);
   const x = useRef(new Animated.Value(0)).current;
 
@@ -30,6 +36,7 @@ export function Shimmer({ className = '' }: { className?: string }) {
   return (
     <View
       onLayout={(e) => setWidth(e.nativeEvent.layout.width)}
+      style={style}
       className={`bg-foreground/10 overflow-hidden ${className}`}>
       {width > 0 && (
         <Animated.View style={[StyleSheet.absoluteFill, { transform: [{ translateX }] }]}>

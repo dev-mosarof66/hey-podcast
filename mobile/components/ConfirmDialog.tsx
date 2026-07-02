@@ -1,7 +1,9 @@
-import { Modal, Pressable, Text, View } from 'react-native';
+import { Modal, Pressable, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useFonts, Sora_500Medium, Sora_600SemiBold, Sora_700Bold } from '@expo-google-fonts/sora';
 
 import { Colors } from 'constants/Colors';
+import { useTheme } from 'components/ThemeProvider';
 import type { IoniconName } from 'constants/types';
 
 interface Props {
@@ -28,37 +30,39 @@ export function ConfirmDialog({
   onConfirm,
   onCancel,
 }: Props) {
+  const dark = useTheme().scheme === 'dark';
+  const [fontsLoaded] = useFonts({ Sora_500Medium, Sora_600SemiBold, Sora_700Bold });
+
+  const cardBg = dark ? '#16161f' : '#ffffff';
+  const titleColor = dark ? '#f8fafc' : '#1a0b2e';
+  const subColor = dark ? 'rgba(248,250,252,0.6)' : 'rgba(26,11,46,0.6)';
+  const cancelBorder = dark ? 'rgba(248,250,252,0.15)' : 'rgba(26,11,46,0.15)';
+  const accent = destructive ? '#ef4444' : Colors.primary;
+  const iconBg = destructive ? 'rgba(239,68,68,0.10)' : 'rgba(112,8,231,0.10)';
+  const titleFont = fontsLoaded ? 'Sora_700Bold' : undefined;
+  const bodyFont = fontsLoaded ? 'Sora_500Medium' : undefined;
+  const semiFont = fontsLoaded ? 'Sora_600SemiBold' : undefined;
+
   return (
     <Modal visible={visible} transparent animationType="fade" statusBarTranslucent onRequestClose={onCancel}>
-      <View className="flex-1 items-center justify-center px-8">
-        {/* Backdrop — tap to dismiss */}
-        <Pressable className="absolute inset-0 bg-black/50" onPress={onCancel} />
+      <View style={styles.wrap}>
+        <Pressable style={styles.backdrop} onPress={onCancel} />
 
-        {/* Card */}
-        <View className="bg-card w-full items-center rounded-3xl p-6">
+        <View style={[styles.card, { backgroundColor: cardBg }]}>
           {icon && (
-            <View
-              className={`h-14 w-14 items-center justify-center rounded-full ${
-                destructive ? 'bg-red-500/10' : 'bg-primary/10'
-              }`}>
-              <Ionicons name={icon} size={20} color={destructive ? '#ef4444' : Colors.primary} />
+            <View style={[styles.iconWrap, { backgroundColor: iconBg }]}>
+              <Ionicons name={icon} size={22} color={accent} />
             </View>
           )}
-          <Text className="text-foreground mt-4 text-xl font-bold">{title}</Text>
-          <Text className="text-foreground/60 mt-2 text-center text-sm leading-5">{message}</Text>
+          <Text style={[styles.title, { color: titleColor, fontFamily: titleFont }]}>{title}</Text>
+          <Text style={[styles.message, { color: subColor, fontFamily: bodyFont }]}>{message}</Text>
 
-          <View className="mt-6 w-full flex-row gap-3">
-            <Pressable
-              onPress={onCancel}
-              className="border-foreground/15 flex-1 items-center rounded-full border py-3.5 active:opacity-70">
-              <Text className="text-foreground text-base font-semibold">{cancelText}</Text>
+          <View style={styles.actions}>
+            <Pressable onPress={onCancel} style={[styles.btn, styles.cancel, { borderColor: cancelBorder }]}>
+              <Text style={[styles.cancelText, { color: titleColor, fontFamily: semiFont }]}>{cancelText}</Text>
             </Pressable>
-            <Pressable
-              onPress={onConfirm}
-              className={`flex-1 items-center rounded-full py-3.5 active:opacity-90 ${
-                destructive ? 'bg-red-500' : 'bg-primary'
-              }`}>
-              <Text className="text-base font-semibold text-white">{confirmText}</Text>
+            <Pressable onPress={onConfirm} style={[styles.btn, { backgroundColor: accent }]}>
+              <Text style={[styles.confirmText, { fontFamily: semiFont }]}>{confirmText}</Text>
             </Pressable>
           </View>
         </View>
@@ -66,3 +70,17 @@ export function ConfirmDialog({
     </Modal>
   );
 }
+
+const styles = StyleSheet.create({
+  wrap: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 32 },
+  backdrop: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.5)' },
+  card: { width: '100%', alignItems: 'center', borderRadius: 28, padding: 24 },
+  iconWrap: { height: 56, width: 56, alignItems: 'center', justifyContent: 'center', borderRadius: 9999 },
+  title: { marginTop: 16, fontSize: 20, fontWeight: '700' },
+  message: { marginTop: 8, textAlign: 'center', fontSize: 14, lineHeight: 20 },
+  actions: { marginTop: 24, width: '100%', flexDirection: 'row', gap: 12 },
+  btn: { flex: 1, alignItems: 'center', borderRadius: 9999, paddingVertical: 14 },
+  cancel: { borderWidth: 1 },
+  cancelText: { fontSize: 15, fontWeight: '600' },
+  confirmText: { fontSize: 15, fontWeight: '600', color: '#ffffff' },
+});

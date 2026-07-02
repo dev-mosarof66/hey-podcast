@@ -16,6 +16,26 @@ export interface Script {
 }
 
 /**
+ * Strip markdown the model sometimes emits despite being told not to, so the
+ * TTS doesn't read "**" / "*" aloud and the transcript stays clean. Unwraps
+ * emphasis/code/links to their inner text, then drops any stray markers.
+ */
+function stripMarkdown(s: string): string {
+  return s
+    .replace(/\[([^\]]+)\]\([^)]*\)/g, '$1') // [text](url) → text
+    .replace(/\*\*([^*]+)\*\*/g, '$1') // **bold**
+    .replace(/__([^_]+)__/g, '$1') // __bold__
+    .replace(/\*([^*]+)\*/g, '$1') // *italic*
+    .replace(/_([^_]+)_/g, '$1') // _italic_
+    .replace(/`([^`]+)`/g, '$1') // `code`
+    .replace(/~~([^~]+)~~/g, '$1') // ~~strike~~
+    .replace(/^\s{0,3}#{1,6}\s+/gm, '') // # headings
+    .replace(/[*_`~]/g, '') // any leftover/unmatched markers
+    .replace(/[ \t]{2,}/g, ' ')
+    .trim();
+}
+
+/**
  * Stage 2 — turn the brief into a lively two-host conversation as JSON. This
  * prompt is the highest-leverage quality lever in the whole product (guide §7);
  * change it carefully.
@@ -28,10 +48,11 @@ export async function writeScript(brief: string, minutes = ENGINE.minutes): Prom
 
 STYLE
 - Two hosts who clearly know each other. A tends to tee up topics; B adds analysis, color, the occasional skeptical take.
-- OPEN WITH A GREETING: the hosts warmly welcome the listener to the show and introduce themselves by their first names, then hook into today's topics. Do not read the date.
+- THIS IS A PERSONALIZED, ONE-LISTENER PODCAST. Speak to a SINGLE person as "you" throughout. NEVER address a crowd — no "everyone", "everybody", "you all", "you guys", "folks", "listeners", "all of you", or "welcome back everyone". Greet one individual (e.g. "Hey — welcome to your daily digest").
+- OPEN WITH A GREETING: the hosts warmly welcome the listener to their personal daily digest and introduce themselves by their first names, then hook into today's topics. Do not read the date.
 - Cover the 3-4 most interesting items from the brief. Use the concrete facts and numbers, react to them, ask each other real questions, occasionally disagree or crack a dry joke.
 - Have them address each other by first name naturally now and then, the way real co-hosts do.
-- Close with a quick, human sign-off.
+- Close with a quick, human sign-off (to the one listener, e.g. "that's your digest — talk tomorrow").
 
 SPEAKING RULES (this is read aloud by text-to-speech)
 - Conversational: contractions, short sentences. No markdown, no stage directions, no sound-effect notes.
@@ -94,14 +115,15 @@ ${brief}`;
     throw new Error('writeScript: response was not valid JSON');
   }
 
-  const turns = (parsed.turns ?? []).filter(
-    (t) => (t.speaker === 'A' || t.speaker === 'B') && t.text?.trim()
-  );
+  const turns = (parsed.turns ?? [])
+    .filter((t) => (t.speaker === 'A' || t.speaker === 'B') && t.text?.trim())
+    .map((t) => ({ speaker: t.speaker, text: stripMarkdown(t.text) }))
+    .filter((t) => t.text);
   if (!turns.length) throw new Error('writeScript: script had no usable turns');
 
   return {
-    title: parsed.title?.trim() || 'Your daily digest',
-    summary: parsed.summary?.trim() || '',
+    title: stripMarkdown(parsed.title ?? '') || 'Your daily digest',
+    summary: stripMarkdown(parsed.summary ?? ''),
     // Fall back to the configured host names if the model omitted them.
     hosts: {
       A: parsed.hosts?.A?.trim() || a.name,

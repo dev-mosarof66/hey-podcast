@@ -1,29 +1,30 @@
-import { View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 
 import { Shimmer } from 'components/Shimmer';
+import { useTheme } from 'components/ThemeProvider';
 import { wp } from 'utils/utils';
 
 /** Loading placeholder shaped like the DigestHero. */
 export function DigestHeroSkeleton() {
+  const dark = useTheme().scheme === 'dark';
+  const bg = dark ? 'rgba(248,250,252,0.05)' : 'rgba(112,8,231,0.06)';
+
   return (
-    <View className="bg-foreground/5 gap-4 p-5" style={{ borderRadius: wp(4) }}>
-      {/* pill */}
-      <Shimmer className="h-5 w-24 rounded-full" />
-
-      {/* title (two lines) */}
-      <View className="gap-2">
-        <Shimmer className="h-6 w-full rounded-md" />
-        <Shimmer className="h-6 w-3/4 rounded-md" />
+    <View style={[styles.card, { backgroundColor: bg }]}>
+      <Shimmer style={{ height: 20, width: 96, borderRadius: 9999 }} />
+      <View style={{ gap: 8 }}>
+        <Shimmer style={{ height: 24, width: '100%', borderRadius: 6 }} />
+        <Shimmer style={{ height: 24, width: '75%', borderRadius: 6 }} />
       </View>
-
-      {/* meta */}
-      <Shimmer className="h-4 w-2/5 rounded-md" />
-
-      {/* play row */}
-      <View className="mt-2 flex-row items-center gap-3">
-        <Shimmer className="h-12 w-12 rounded-full" />
-        <Shimmer className="h-4 w-24 rounded-md" />
+      <Shimmer style={{ height: 16, width: '40%', borderRadius: 6 }} />
+      <View style={{ marginTop: 4, flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+        <Shimmer style={{ height: 48, width: 48, borderRadius: 9999 }} />
+        <Shimmer style={{ height: 16, width: 96, borderRadius: 6 }} />
       </View>
     </View>
   );
 }
+
+const styles = StyleSheet.create({
+  card: { gap: 16, padding: 20, borderRadius: wp(4) },
+});

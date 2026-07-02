@@ -1,4 +1,8 @@
-import { Pressable, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { useFonts, Sora_600SemiBold } from '@expo-google-fonts/sora';
+
+import { Colors } from 'constants/Colors';
+import { useTheme } from 'components/ThemeProvider';
 
 export interface Segment {
   id: string;
@@ -13,17 +17,23 @@ interface Props {
 
 /** Pill segmented control. */
 export function SegmentedTabs({ segments, value, onChange }: Props) {
+  const dark = useTheme().scheme === 'dark';
+  const [fontsLoaded] = useFonts({ Sora_600SemiBold });
+  const font = fontsLoaded ? 'Sora_600SemiBold' : undefined;
+
+  const trackBg = dark ? 'rgba(248,250,252,0.06)' : 'rgba(26,11,46,0.06)';
+  const inactive = dark ? 'rgba(248,250,252,0.5)' : 'rgba(26,11,46,0.5)';
+
   return (
-    <View className="bg-foreground/5 flex-row rounded-full p-1">
+    <View style={[styles.track, { backgroundColor: trackBg }]}>
       {segments.map((s) => {
         const active = s.id === value;
         return (
           <Pressable
             key={s.id}
             onPress={() => onChange(s.id)}
-            className={`flex-1 items-center rounded-full py-2.5 ${active ? 'bg-primary' : ''}`}>
-            <Text
-              className={`text-sm font-semibold ${active ? 'text-white' : 'text-foreground/50'}`}>
+            style={[styles.tab, active && { backgroundColor: Colors.primary }]}>
+            <Text style={[styles.label, { color: active ? '#fff' : inactive, fontFamily: font }]}>
               {s.label}
             </Text>
           </Pressable>
@@ -32,3 +42,9 @@ export function SegmentedTabs({ segments, value, onChange }: Props) {
     </View>
   );
 }
+
+const styles = StyleSheet.create({
+  track: { flexDirection: 'row', borderRadius: 9999, padding: 4 },
+  tab: { flex: 1, alignItems: 'center', borderRadius: 9999, paddingVertical: 10 },
+  label: { fontSize: 14, fontWeight: '600' },
+});

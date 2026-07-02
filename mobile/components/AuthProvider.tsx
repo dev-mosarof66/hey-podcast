@@ -21,10 +21,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [token, setTok] = useState<string | null>(null);
   const [ready, setReady] = useState(false);
 
-  // On launch: load the stored token and VALIDATE it with the server
-  // (GET /auth/me). The session is authed ONLY if the server confirms the
-  // token. Any failure — rejected (401/403) OR unreachable (network error) —
-  // sends the user to login; we never trust an unverified token.
+  // On launch: load the stored token and open OPTIMISTICALLY — trust it right
+  // away so the app doesn't sit on the splash waiting for a possibly-cold
+  // server (Render free tier can take 30–60s to wake). We then validate with
+  // GET /auth/me in the BACKGROUND and only sign out if the server
+  // definitively rejects the token (401/403). A network/unreachable error
+  // keeps the session; real requests will retry once the server is up.
   useEffect(() => {
     (async () => {
       const stored = await loadToken();
@@ -32,20 +34,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setReady(true);
         return;
       }
-      try {
-        await dispatch(api.endpoints.getMe.initiate(undefined, { forceRefetch: true })).unwrap();
-        setTok(stored); // server accepted it → authed
-      } catch (err) {
-        const status = (err as { status?: number | string })?.status;
-        // Definitively invalid → wipe it. Network/other error → keep it in
-        // storage (a later launch may validate) but don't authenticate now.
-        if (status === 401 || status === 403) {
-          await clearToken();
-        }
-        setTok(null); // not verified → go to login
-      } finally {
-        setReady(true);
-      }
+      // Route immediately with the stored token.
+      setTok(stored);
+      setReady(true);
+
+      // Background validation — never blocks the splash.
+      dispatch(api.endpoints.getMe.initiate(undefined, { forceRefetch: true }))
+        .unwrap()
+        .catch(async (err) => {
+          const status = (err as { status?: number | string })?.status;
+          if (status === 401 || status === 403) {
+            await clearToken();
+            setTok(null); // definitively invalid → drop to login
+          }
+          // else: offline / cold server → keep the optimistic session
+        });
     })();
   }, [dispatch]);
 

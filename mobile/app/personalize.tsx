@@ -1,13 +1,24 @@
 import { useEffect, useRef, useState } from 'react';
-import { Pressable, ScrollView, Text, useWindowDimensions, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import {
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  useWindowDimensions,
+  View,
+  ActivityIndicator,
+} from 'react-native';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { router, useLocalSearchParams } from 'expo-router';
 import Toast from 'react-native-toast-message';
+import { useFonts, Sora_500Medium, Sora_600SemiBold, Sora_700Bold } from '@expo-google-fonts/sora';
 
 import { PrimaryButton } from 'components/Button';
 import { GeneratingDigest } from 'components/GeneratingDigest';
 import { Shimmer } from 'components/Shimmer';
+import { useTheme } from 'components/ThemeProvider';
 import { Colors } from 'constants/Colors';
 import type { IoniconName } from 'constants/types';
 import { topicUi } from 'constants/topicUi';
@@ -28,19 +39,25 @@ const STEP_META = [
 ];
 
 const TOTAL_STEPS = 3;
+const PRIMARY = '#7008e7';
+const LIGHT_BG = ['#faf5ff', '#f3e8ff', '#ede9fe'] as const;
+const DARK_BG = ['#020618', '#0b0a1e', '#0a0a1a'] as const;
 
-function Heading({ title, subtitle }: { title: string; subtitle: string }) {
-  return (
-    <View className="pb-3">
-      <Text className="text-foreground text-3xl font-bold tracking-tight">{title}</Text>
-      <Text className="text-foreground/50 mt-1 text-sm">{subtitle}</Text>
-    </View>
-  );
-}
+// Soft violet glow under the CTA (shared with the onboarding button).
+const CTA_GLOW = {
+  shadowColor: Colors.primary,
+  shadowOpacity: 0.4,
+  shadowRadius: 18,
+  shadowOffset: { width: 0, height: 10 },
+  elevation: 10,
+};
 
 export default function PersonalizeScreen() {
+  const inset = useSafeAreaInsets();
+  const dark = useTheme().scheme === 'dark';
   const { width } = useWindowDimensions();
   const pagerRef = useRef<ScrollView>(null);
+  const [fontsLoaded] = useFonts({ Sora_500Medium, Sora_600SemiBold, Sora_700Bold });
   // Edit mode (re-entered from Profile) just saves and returns — no onboarding
   // generating animation or paywall.
   const isEdit = useLocalSearchParams<{ edit?: string }>().edit === '1';
@@ -90,8 +107,7 @@ export default function PersonalizeScreen() {
   }, [topics]);
 
   const saving = savingMe || savingTopics;
-  const canContinue =
-    step === 0 ? !!ageRange : step === 1 ? !!profession : selected.size > 0;
+  const canContinue = step === 0 ? !!ageRange : step === 1 ? !!profession : selected.size > 0;
 
   const goTo = (i: number) => {
     setStep(i);
@@ -142,150 +158,247 @@ export default function PersonalizeScreen() {
     );
   }
 
-  const pageScroll = {
-    paddingHorizontal: wp(6),
-    paddingTop: hp(4),
-    paddingBottom: hp(2),
-  };
+  // Theme-aware surfaces + text (mirror the onboarding palette).
+  const titleColor = dark ? '#f8fafc' : '#1a0b2e';
+  const subColor = dark ? 'rgba(248,250,252,0.55)' : 'rgba(26,11,46,0.55)';
+  const cardBg = dark ? '#16161f' : '#ffffff';
+  const cardBorder = dark ? 'rgba(248,250,252,0.10)' : 'rgba(26,11,46,0.08)';
+  // Opaque tint (violet pre-blended over the card bg) — a translucent fill would
+  // let the card's drop shadow show through and read as an inner shadow.
+  const activeFill = dark ? '#241440' : '#f6f0fe';
+  const progressInactive = dark ? 'rgba(248,250,252,0.15)' : 'rgba(26,11,46,0.12)';
+  const footerBorder = dark ? 'rgba(248,250,252,0.08)' : 'rgba(26,11,46,0.06)';
+
+  const titleFont = fontsLoaded ? 'Sora_700Bold' : undefined;
+  const bodyFont = fontsLoaded ? 'Sora_500Medium' : undefined;
+  const labelFont = fontsLoaded ? 'Sora_600SemiBold' : undefined;
+
+  const Heading = ({ title, subtitle }: { title: string; subtitle: string }) => (
+    <View style={{ paddingBottom: 16 }}>
+      <Text style={[styles.hTitle, { color: titleColor, fontFamily: titleFont }]}>{title}</Text>
+      <Text style={[styles.hSub, { color: subColor, fontFamily: bodyFont }]}>{subtitle}</Text>
+    </View>
+  );
+
+  const pageScroll = { paddingHorizontal: wp(6), paddingTop: hp(3), paddingBottom: hp(2) };
 
   return (
-    <SafeAreaView className="bg-background flex-1" edges={['top', 'bottom']}>
-      {/* Top bar: back (edit mode only) + progress */}
-      <View className="flex-row items-center gap-3 px-6 pt-2">
-        {isEdit && (
-          <Pressable hitSlop={10} onPress={() => router.back()}>
-            <Ionicons name="chevron-back" size={24} color={Colors.muted} />
-          </Pressable>
-        )}
-        <View className="flex-1 flex-row justify-center gap-2">
-          {Array.from({ length: TOTAL_STEPS }).map((_, i) => (
-            <View
-              key={i}
-              className={`h-1.5 flex-1 rounded-full ${i <= step ? 'bg-primary' : 'bg-foreground/15'}`}
-            />
-          ))}
-        </View>
-      </View>
-
-      {/* Swipeable steps */}
-      <ScrollView
-        ref={pagerRef}
-        horizontal
-        pagingEnabled
-        showsHorizontalScrollIndicator={false}
-        keyboardShouldPersistTaps="handled"
-        onMomentumScrollEnd={(e) => {
-          const page = Math.round(e.nativeEvent.contentOffset.x / width);
-          if (page !== step) setStep(page);
-        }}
-        className="flex-1">
-        {/* Step 0 — age range */}
-        <View style={{ width }}>
-          <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={pageScroll}>
-            <Heading {...STEP_META[0]} />
-            <View className="gap-3">
-              {ageRanges.map((a) => {
-                const active = ageRange === a;
-                return (
-                  <Pressable
-                    key={a}
-                    onPress={() => setAgeRange(a)}
-                    className={`flex-row items-center justify-between rounded-2xl border p-4 active:opacity-80 ${
-                      active ? 'border-primary bg-primary/5' : 'border-foreground/10 bg-card'
-                    }`}>
-                    <Text className="text-foreground text-base font-semibold">{a}</Text>
-                    {active && <Ionicons name="checkmark-circle" size={22} color={Colors.primary} />}
-                  </Pressable>
-                );
-              })}
-            </View>
-          </ScrollView>
+    <LinearGradient colors={dark ? DARK_BG : LIGHT_BG} style={styles.flex}>
+      <SafeAreaView style={styles.flex} edges={['top', 'bottom']}>
+        {/* Top bar: back (edit mode only) + progress */}
+        <View style={styles.topbar}>
+          {isEdit && (
+            <Pressable hitSlop={10} onPress={() => router.back()}>
+              <Ionicons name="chevron-back" size={24} color={dark ? '#f8fafc' : '#1a0b2e'} />
+            </Pressable>
+          )}
+          <View style={styles.progress}>
+            {Array.from({ length: TOTAL_STEPS }).map((_, i) => (
+              <View
+                key={i}
+                style={[
+                  styles.segment,
+                  { backgroundColor: i <= step ? PRIMARY : progressInactive },
+                ]}
+              />
+            ))}
+          </View>
         </View>
 
-        {/* Step 1 — profession */}
-        <View style={{ width }}>
-          <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={pageScroll}>
-            <Heading {...STEP_META[1]} />
-            <View className="flex-row flex-wrap justify-between gap-y-3">
-              {professions.map((p) => {
-                const active = profession === p.label;
-                return (
-                  <Pressable
-                    key={p.label}
-                    onPress={() => setProfession(p.label)}
-                    className={`w-[48%] gap-3 rounded-2xl border p-4 active:opacity-80 ${
-                      active ? 'border-primary bg-primary/5' : 'border-foreground/10 bg-card'
-                    }`}>
-                    <View className="bg-primary/10 h-11 w-11 items-center justify-center rounded-full">
-                      <Ionicons name={p.icon as IoniconName} size={22} color={Colors.primary} />
-                    </View>
-                    <View className="flex-row items-center justify-between">
-                      <Text className="text-foreground text-base font-semibold">{p.label}</Text>
-                      {active && (
-                        <Ionicons name="checkmark-circle" size={18} color={Colors.primary} />
-                      )}
-                    </View>
-                  </Pressable>
-                );
-              })}
-            </View>
-          </ScrollView>
-        </View>
+        {/* Swipeable steps */}
+        <ScrollView
+          ref={pagerRef}
+          horizontal
+          pagingEnabled
+          showsHorizontalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+          onMomentumScrollEnd={(e) => {
+            const page = Math.round(e.nativeEvent.contentOffset.x / width);
+            if (page !== step) setStep(page);
+          }}
+          style={styles.flex}>
+          {/* Step 0 — age range */}
+          <View style={{ width }}>
+            <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={pageScroll}>
+              <Heading {...STEP_META[0]} />
+              <View style={{ gap: 12 }}>
+                {ageRanges.map((a) => {
+                  const active = ageRange === a;
+                  return (
+                    <Pressable
+                      key={a}
+                      onPress={() => setAgeRange(a)}
+                      style={[
+                        styles.row,
+                        styles.cardShadow,
+                        {
+                          backgroundColor: active ? activeFill : cardBg,
+                          borderColor: active ? PRIMARY : cardBorder,
+                        },
+                        active && styles.activeGlow,
+                      ]}>
+                      <Text style={[styles.optLabel, { color: titleColor, fontFamily: labelFont }]}>
+                        {a}
+                      </Text>
+                      {active && <Ionicons name="checkmark-circle" size={22} color={PRIMARY} />}
+                    </Pressable>
+                  );
+                })}
+              </View>
+            </ScrollView>
+          </View>
 
-        {/* Step 2 — topics */}
-        <View style={{ width }}>
-          <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={pageScroll}>
-            <Heading {...STEP_META[2]} />
-            <View className="flex-row flex-wrap justify-between gap-y-3">
-              {loadingConfig
-                ? Array.from({ length: 8 }).map((_, i) => (
-                    <Shimmer key={i} className="h-28 w-[48%] rounded-2xl" />
-                  ))
-                : topics.map((t) => {
-                    const ui = topicUi(t.slug);
-                    const active = selected.has(t.id);
-                    return (
-                      <Pressable
-                        key={t.id}
-                        onPress={() => toggleTopic(t.id)}
-                        className={`w-[48%] gap-3 rounded-2xl border p-4 active:opacity-80 ${
-                          active ? 'border-primary bg-primary/5' : 'border-foreground/10 bg-card'
-                        }`}>
-                        <View className="flex-row items-center justify-between">
-                          <View
-                            className="h-11 w-11 items-center justify-center rounded-full"
-                            style={{ backgroundColor: ui.color + '22' }}>
-                            <Ionicons name={ui.icon} size={22} color={ui.color} />
+          {/* Step 1 — profession */}
+          <View style={{ width }}>
+            <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={pageScroll}>
+              <Heading {...STEP_META[1]} />
+              <View style={styles.grid}>
+                {professions.map((p) => {
+                  const active = profession === p.label;
+                  return (
+                    <Pressable
+                      key={p.label}
+                      onPress={() => setProfession(p.label)}
+                      style={[
+                        styles.card,
+                        styles.cardShadow,
+                        {
+                          backgroundColor: active ? activeFill : cardBg,
+                          borderColor: active ? PRIMARY : cardBorder,
+                        },
+                        active && styles.activeGlow,
+                      ]}>
+                      <View style={[styles.iconWrap, { backgroundColor: 'rgba(112,8,231,0.10)' }]}>
+                        <Ionicons name={p.icon as IoniconName} size={22} color={PRIMARY} />
+                      </View>
+                      <View style={styles.cardFoot}>
+                        <Text
+                          style={[styles.optLabel, { color: titleColor, fontFamily: labelFont }]}>
+                          {p.label}
+                        </Text>
+                        {active && <Ionicons name="checkmark-circle" size={18} color={PRIMARY} />}
+                      </View>
+                    </Pressable>
+                  );
+                })}
+              </View>
+            </ScrollView>
+          </View>
+
+          {/* Step 2 — topics */}
+          <View style={{ width }}>
+            <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={pageScroll}>
+              <Heading {...STEP_META[2]} />
+              <View style={styles.grid}>
+                {loadingConfig
+                  ? Array.from({ length: 8 }).map((_, i) => (
+                      <Shimmer key={i} style={{ width: '48%', height: hp(13), borderRadius: 20 }} />
+                    ))
+                  : topics.map((t) => {
+                      const ui = topicUi(t.slug);
+                      const active = selected.has(t.id);
+                      return (
+                        <Pressable
+                          key={t.id}
+                          onPress={() => toggleTopic(t.id)}
+                          style={[
+                            styles.card,
+                            styles.cardShadow,
+                            {
+                              backgroundColor: active ? activeFill : cardBg,
+                              borderColor: active ? PRIMARY : cardBorder,
+                            },
+                            active && styles.activeGlow,
+                          ]}>
+                          <View style={styles.cardHead}>
+                            <View style={[styles.iconWrap, { backgroundColor: ui.color + '22' }]}>
+                              <Ionicons name={ui.icon} size={22} color={ui.color} />
+                            </View>
+                            {active && (
+                              <Ionicons name="checkmark-circle" size={22} color={ui.color} />
+                            )}
                           </View>
-                          {active && (
-                            <Ionicons name="checkmark-circle" size={22} color={ui.color} />
-                          )}
-                        </View>
-                        <Text className="text-foreground text-base font-semibold">{t.label}</Text>
-                      </Pressable>
-                    );
-                  })}
-            </View>
-          </ScrollView>
-        </View>
-      </ScrollView>
+                          <Text
+                            style={[styles.optLabel, { color: titleColor, fontFamily: labelFont }]}>
+                            {t.label}
+                          </Text>
+                        </Pressable>
+                      );
+                    })}
+              </View>
+            </ScrollView>
+          </View>
+        </ScrollView>
 
-      {/* Footer */}
-      <View className="border-foreground/5 border-t px-6 pb-2 pt-4">
-        <PrimaryButton
-          text={
-            step < TOTAL_STEPS - 1
-              ? 'Continue'
-              : saving
-                ? 'Saving…'
-                : isEdit
-                  ? 'Save'
-                  : 'Finish'
-          }
-          onPress={onContinue}
-          disabled={!canContinue || saving}
-        />
-      </View>
-    </SafeAreaView>
+        {/* Footer */}
+        <View
+          style={[styles.footer, { borderTopColor: footerBorder, paddingBottom: inset.bottom }]}>
+          <PrimaryButton onPress={onContinue} disabled={!canContinue || saving} style={CTA_GLOW}>
+            <Text style={[styles.ctaText, { fontFamily: labelFont }]}>
+              {step < TOTAL_STEPS - 1 ? (
+                'Continue'
+              ) : saving ? (
+                <ActivityIndicator color="#ffffff" />
+              ) : isEdit ? (
+                'Save'
+              ) : (
+                'Finish'
+              )}
+            </Text>
+          </PrimaryButton>
+        </View>
+      </SafeAreaView>
+    </LinearGradient>
   );
 }
+
+const styles = StyleSheet.create({
+  flex: { flex: 1 },
+  topbar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    paddingHorizontal: 24,
+    paddingTop: 8,
+  },
+  progress: { flex: 1, flexDirection: 'row', justifyContent: 'center', gap: 8 },
+  segment: { height: 6, flex: 1, borderRadius: 9999 },
+  hTitle: { fontSize: 28, fontWeight: '700', letterSpacing: -0.5 },
+  hSub: { marginTop: 6, fontSize: 14, lineHeight: 20 },
+  grid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', rowGap: 14 },
+  row: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    borderRadius: 18,
+    borderWidth: 1.5,
+    padding: 16,
+  },
+  card: { width: '48%', gap: 12, borderRadius: 20, borderWidth: 1.5, padding: 16 },
+  cardHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  cardFoot: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  iconWrap: {
+    height: 44,
+    width: 44,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 9999,
+  },
+  optLabel: { fontSize: 16, fontWeight: '600' },
+  cardShadow: {
+    shadowColor: '#000',
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 1,
+  },
+  activeGlow: {
+    shadowColor: PRIMARY,
+    shadowOpacity: 0.18,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 3,
+  },
+  footer: { borderTopWidth: 1, paddingHorizontal: 24, paddingTop: 16, paddingBottom: 8 },
+  ctaText: { fontSize: 18, fontWeight: '600', color: '#ffffff' },
+});

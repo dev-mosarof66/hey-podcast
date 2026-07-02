@@ -1,10 +1,19 @@
 import { useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, Pressable, ScrollView, Text, TouchableOpacity, View } from 'react-native';
+import {
+  ActivityIndicator,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import Slider from '@react-native-community/slider';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
+import { useFonts, Sora_500Medium, Sora_600SemiBold, Sora_800ExtraBold } from '@expo-google-fonts/sora';
 
 import { Colors } from 'constants/Colors';
 import { HOSTS_LABEL, hostName } from 'constants/hosts';
@@ -16,10 +25,13 @@ import { useGetEpisodeQuery, useGetSavedQuery, useToggleSavedMutation } from 'st
 import { formatTime, hp, wp } from 'utils/utils';
 
 const WAVE = [26, 48, 18, 60, 34, 52, 22, 42, 30, 56, 20, 38];
+const LIGHT_BG = ['#faf5ff', '#f3e8ff', '#ede9fe'] as const;
+const DARK_BG = ['#020618', '#0b0a1e', '#0a0a1a'] as const;
 
 export default function PlayerScreen() {
-  const inset = useSafeAreaInsets()
+  const inset = useSafeAreaInsets();
   const dark = useTheme().scheme === 'dark';
+  const [fontsLoaded] = useFonts({ Sora_500Medium, Sora_600SemiBold, Sora_800ExtraBold });
   const { episode, isPlaying, isBuffering, position, duration, rate } = usePlayer();
   const { toggle, seekTo, skip, setRate } = usePlayerActions();
   const { data: saved = [] } = useGetSavedQuery();
@@ -48,20 +60,30 @@ export default function PlayerScreen() {
     if (y != null) scrollRef.current?.scrollTo({ y: Math.max(0, y - hp(6)), animated: true });
   }, [full, position]);
 
+  const titleFont = fontsLoaded ? 'Sora_800ExtraBold' : undefined;
+  const bodyFont = fontsLoaded ? 'Sora_500Medium' : undefined;
+  const semiFont = fontsLoaded ? 'Sora_600SemiBold' : undefined;
+
   if (!episode) {
     return (
-      <SafeAreaView className="flex-1 items-center justify-center bg-background">
-        <Pressable onPress={() => router.back()} className="rounded-full bg-primary px-6 py-3">
-          <Text className="font-semibold text-white">Close</Text>
-        </Pressable>
-      </SafeAreaView>
+      <LinearGradient colors={dark ? DARK_BG : LIGHT_BG} style={styles.flex}>
+        <SafeAreaView style={[styles.flex, styles.center]}>
+          <Pressable onPress={() => router.back()} style={styles.closeBtn}>
+            <Text style={[styles.closeText, { fontFamily: semiFont }]}>Close</Text>
+          </Pressable>
+        </SafeAreaView>
+      </LinearGradient>
     );
   }
 
   const total = duration || episode.durationSec || 1;
   const value = drag ?? position;
   const accent = episode.color;
-  const fg = dark ? '#FFFFFF' : '#0F172A';
+  const titleColor = dark ? '#f8fafc' : '#1a0b2e';
+  const subColor = dark ? 'rgba(248,250,252,0.6)' : 'rgba(26,11,46,0.6)';
+  const labelColor = dark ? 'rgba(248,250,252,0.45)' : 'rgba(26,11,46,0.45)';
+  const mutedText = dark ? 'rgba(248,250,252,0.4)' : 'rgba(26,11,46,0.4)';
+  const fadeColor = dark ? '#0a0a1a' : '#ede9fe';
   const isSaved = saved.some((s) => s.id === episode.id);
   const isDownloaded = !!downloads[episode.id];
   const isDownloading = progress[episode.id] != null;
@@ -77,244 +99,258 @@ export default function PlayerScreen() {
   };
 
   return (
-    <SafeAreaView className="flex-1 bg-background" edges={['top', 'bottom']}>
-      {/* Top bar */}
-      <View className="flex-row items-center justify-between px-5 py-2">
-        <TouchableOpacity hitSlop={12} onPress={() => router.back()}>
-          <Ionicons name="chevron-down" size={28} color={Colors.muted} />
-        </TouchableOpacity>
-        <Text className="text-md font-bold uppercase tracking-widest text-foreground/70">
-          Now Playing
-        </Text>
-        <View className="flex-row items-center gap-4">
-          <TouchableOpacity
-            hitSlop={12}
-            disabled={isDownloading}
-            onPress={() => (isDownloaded ? remove(episode.id) : download(episode))}>
-            {isDownloading ? (
-              <ActivityIndicator size="small" color={Colors.primary} />
-            ) : (
-              <Ionicons
-                name={isDownloaded ? 'cloud-done' : 'cloud-download-outline'}
-                size={24}
-                color={isDownloaded ? Colors.primary : Colors.muted}
-              />
-            )}
+    <LinearGradient colors={dark ? DARK_BG : LIGHT_BG} style={styles.flex}>
+      <SafeAreaView style={styles.flex} edges={['top', 'bottom']}>
+        {/* Top bar */}
+        <View style={styles.topbar}>
+          <TouchableOpacity hitSlop={12} onPress={() => router.back()}>
+            <Ionicons name="chevron-down" size={28} color={titleColor} />
           </TouchableOpacity>
-          <TouchableOpacity
-            hitSlop={12}
-            onPress={() => toggleSaved({ id: episode.id, saved: !isSaved })}>
-            <Ionicons
-              name={isSaved ? 'bookmark' : 'bookmark-outline'}
-              size={24}
-              color={isSaved ? Colors.primary : Colors.muted}
-            />
-          </TouchableOpacity>
-        </View>
-      </View>
-
-      <View className="flex-1">
-        {/* Artwork */}
-        <View className="items-center">
-          <LinearGradient
-            colors={[accent, '#721378', '#3C0A45']}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={{
-              width: wp(100),
-              height: wp(70),
-              alignItems: 'center',
-              justifyContent: 'center',
-              overflow: 'hidden',
-              shadowColor: dark ? accent : '#000',
-              shadowOpacity: dark ? 0.6 : 0.25,
-              shadowRadius: 24,
-              shadowOffset: { width: 0, height: 12 },
-              elevation: 12,
-            }}>
-            <Ionicons name={episode.icon} size={wp(22)} color="rgba(255,255,255,0.92)" />
-            <View
-              pointerEvents="none"
-              style={{
-                position: 'absolute',
-                bottom: wp(7),
-                flexDirection: 'row',
-                alignItems: 'center',
-                gap: wp(1.5),
-                opacity: 0.18,
-              }}>
-              {WAVE.map((h, i) => (
-                <View
-                  key={i}
-                  style={{
-                    width: wp(1.5),
-                    height: wp(h / 3.4),
-                    borderRadius: 99,
-                    backgroundColor: '#fff',
-                  }}
-                />
-              ))}
-            </View>
-          </LinearGradient>
-        </View>
-
-        {/* Meta */}
-        <View className="items-center py-6">
-          <View
-            className="mb-3 self-center rounded-full px-3 py-1"
-            style={{ backgroundColor: accent + '22' }}>
-            <Text className="text-sm font-bold" style={{ color: accent }}>
-              {episode.topic}
-            </Text>
-          </View>
-          <Text
-            numberOfLines={2}
-            className="max-w-md text-center text-3xl font-extrabold leading-10 text-foreground">
-            {episode.title}
+          <Text style={[styles.nowPlaying, { color: labelColor, fontFamily: semiFont }]}>
+            Now Playing
           </Text>
-          <Text className="text-md mt-3 text-foreground/70">{hostsLabel} · AI Host</Text>
-        </View>
-
-        {/* Transcript loading — placeholder while the full episode is fetched */}
-        {fullLoading && transcript.length === 0 && (
-          <View
-            className="flex-1"
-            style={{ paddingHorizontal: wp(6), paddingBottom: inset.bottom + hp(22) }}>
-            <Shimmer className="mb-3 h-3 w-24 rounded-md" />
-            {Array.from({ length: 5 }).map((_, i) => (
-              <View key={i} className="mb-3 gap-1.5">
-                <Shimmer className="h-3 w-16 rounded-md" />
-                <Shimmer className="h-4 w-full rounded-md" />
-                <Shimmer className="h-4 w-3/4 rounded-md" />
-              </View>
-            ))}
-          </View>
-        )}
-
-        {/* Transcript — fills the gap between meta and the pinned controls */}
-        {transcript.length > 0 && (
-          <ScrollView
-            ref={scrollRef}
-            className="flex-1"
-            showsVerticalScrollIndicator={false}
-            contentContainerStyle={{ paddingHorizontal: wp(6), paddingBottom: inset.bottom + hp(22) }}>
-            <Text className="mb-3 text-sm font-bold uppercase tracking-widest text-foreground/50">
-              Transcript
-            </Text>
-            {transcript.map((t, i) => {
-              const isActive = i === activeIdx;
-              return (
-                <View
-                  key={i}
-                  className="mb-3"
-                  onLayout={(e) => {
-                    turnY.current[i] = e.nativeEvent.layout.y;
-                  }}>
-                  <Text
-                    className="text-sm font-bold"
-                    style={{
-                      color: t.speaker === 'A' ? accent : Colors.secondary,
-                      opacity: isActive ? 1 : 0.7,
-                    }}>
-                    {full?.hosts?.[t.speaker] ?? hostName(t.speaker)}
-                  </Text>
-                  <Text
-                    className={`mt-0.5 text-md leading-5 ${
-                      isActive ? 'font-semibold text-foreground' : 'text-foreground/40'
-                    }`}>
-                    {t.text}
-                  </Text>
-                </View>
-              );
-            })}
-          </ScrollView>
-        )}
-
-        {/* bottom bar */}
-        <View className='w-full px-6 py-3 absolute bottom-0 bg-background' style={{
-          marginBottom: inset.bottom - wp(4),
-          shadowColor: dark ? Colors.primary : '#000',
-          shadowOpacity: dark ? 0.35 : 0.15,
-          shadowRadius: dark ? 14 : 12,
-          shadowOffset: { width: 0, height: dark ? 0 : 4 },
-          elevation: dark ? 8 : 10,
-        }}>
-          {/* Scrubber */}
-          <View>
-            <Slider
-              minimumValue={0}
-              maximumValue={total}
-              value={value}
-              onValueChange={setDrag}
-              onSlidingComplete={(v) => {
-                seekTo(v);
-                setDrag(null);
-              }}
-              minimumTrackTintColor={Colors.primary}
-              maximumTrackTintColor={dark ? '#ffffff30' : '#00000020'}
-              thumbTintColor={Colors.primary}
-            />
-            <View className="flex-row justify-between px-8">
-              <Text className="text-sm text-foreground/50">{formatTime(value)}</Text>
-              <Text className="text-sm text-foreground/50">
-                -{formatTime(Math.max(0, total - value))}
-              </Text>
-            </View>
-          </View>
-
-          {/* Transport */}
-          <View className="flex-row items-center justify-between px-2">
-            <Pressable hitSlop={10} onPress={cycleRate} className="w-14 items-center">
-              <Text className="text-base font-bold text-foreground">{rate}×</Text>
-            </Pressable>
-
-            <Pressable hitSlop={10} onPress={() => skip(-15)}>
-              <Ionicons name="play-back" size={wp(6)} color={fg} />
-            </Pressable>
-
-            <Pressable
-              onPress={toggle}
-              className="items-center justify-center rounded-full"
-              style={{
-                width: wp(10),
-                height: wp(10),
-                backgroundColor: Colors.primary,
-                shadowColor: Colors.primary,
-                shadowOpacity: 0.5,
-                shadowRadius: 16,
-                shadowOffset: { width: 0, height: 6 },
-                elevation: 8,
-              }}>
-              {isBuffering && !isPlaying ? (
-                <ActivityIndicator color="#fff" />
+          <View style={styles.topActions}>
+            <TouchableOpacity
+              hitSlop={12}
+              disabled={isDownloading}
+              onPress={() => (isDownloaded ? remove(episode.id) : download(episode))}>
+              {isDownloading ? (
+                <ActivityIndicator size="small" color={Colors.primary} />
               ) : (
                 <Ionicons
-                  name={isPlaying ? 'pause' : 'play'}
-                  size={wp(6)}
-                  color="#fff"
-                  style={{ marginLeft: isPlaying ? 0 : 3 }}
+                  name={isDownloaded ? 'cloud-done' : 'cloud-download-outline'}
+                  size={24}
+                  color={isDownloaded ? Colors.primary : subColor}
                 />
               )}
-            </Pressable>
-
-            <Pressable hitSlop={10} onPress={() => skip(15)}>
-              <Ionicons name="play-forward" size={wp(6)} color={fg} />
-            </Pressable>
-
-            {/* Save toggle */}
-            <Pressable
-              hitSlop={10}
-              onPress={() => toggleSaved({ id: episode.id, saved: !isSaved })}
-              className="w-14 items-center">
+            </TouchableOpacity>
+            <TouchableOpacity
+              hitSlop={12}
+              onPress={() => toggleSaved({ id: episode.id, saved: !isSaved })}>
               <Ionicons
                 name={isSaved ? 'bookmark' : 'bookmark-outline'}
                 size={24}
-                color={isSaved ? Colors.primary : Colors.muted}
+                color={isSaved ? Colors.primary : subColor}
               />
-            </Pressable>
+            </TouchableOpacity>
           </View>
         </View>
-      </View>
-    </SafeAreaView>
+
+        <View style={styles.flex}>
+          {/* Artwork */}
+          <View style={styles.artWrap}>
+            <LinearGradient
+              colors={[accent, '#721378', '#3C0A45']}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={[styles.art, { shadowColor: dark ? accent : '#000', shadowOpacity: dark ? 0.6 : 0.3 }]}>
+              <Ionicons name={episode.icon} size={wp(22)} color="rgba(255,255,255,0.92)" />
+              <View pointerEvents="none" style={styles.wave}>
+                {WAVE.map((h, i) => (
+                  <View key={i} style={{ width: wp(1.5), height: wp(h / 3.4), borderRadius: 99, backgroundColor: '#fff' }} />
+                ))}
+              </View>
+            </LinearGradient>
+          </View>
+
+          {/* Meta */}
+          <View style={styles.meta}>
+            <View style={[styles.pill, { backgroundColor: accent + '22' }]}>
+              <Text style={[styles.pillText, { color: accent, fontFamily: semiFont }]}>
+                {episode.topic}
+              </Text>
+            </View>
+            <Text
+              numberOfLines={2}
+              style={[styles.title, { color: titleColor, fontFamily: titleFont }]}>
+              {episode.title}
+            </Text>
+            <Text style={[styles.hosts, { color: subColor, fontFamily: bodyFont }]}>
+              {hostsLabel} · AI Host
+            </Text>
+          </View>
+
+          {/* Transcript loading — placeholder while the full episode is fetched */}
+          {fullLoading && transcript.length === 0 && (
+            <View style={[styles.flex, { paddingHorizontal: wp(6), paddingBottom: inset.bottom + hp(22) }]}>
+              <Shimmer style={{ height: 12, width: 96, borderRadius: 6, marginBottom: 12 }} />
+              {Array.from({ length: 5 }).map((_, i) => (
+                <View key={i} style={{ marginBottom: 12, gap: 6 }}>
+                  <Shimmer style={{ height: 12, width: 64, borderRadius: 6 }} />
+                  <Shimmer style={{ height: 16, width: '100%', borderRadius: 6 }} />
+                  <Shimmer style={{ height: 16, width: '75%', borderRadius: 6 }} />
+                </View>
+              ))}
+            </View>
+          )}
+
+          {/* Transcript — fills the gap between meta and the pinned controls */}
+          {transcript.length > 0 && (
+            <ScrollView
+              ref={scrollRef}
+              style={styles.flex}
+              showsVerticalScrollIndicator={false}
+              contentContainerStyle={{ paddingHorizontal: wp(6), paddingBottom: inset.bottom + hp(22) }}>
+              <Text style={[styles.transcriptLabel, { color: labelColor, fontFamily: semiFont }]}>
+                Transcript
+              </Text>
+              {transcript.map((t, i) => {
+                const isActive = i === activeIdx;
+                return (
+                  <View
+                    key={i}
+                    style={{ marginBottom: 14 }}
+                    onLayout={(e) => {
+                      turnY.current[i] = e.nativeEvent.layout.y;
+                    }}>
+                    <Text
+                      style={{
+                        fontSize: 13,
+                        fontFamily: semiFont,
+                        fontWeight: '700',
+                        color: t.speaker === 'A' ? accent : Colors.secondary,
+                        opacity: isActive ? 1 : 0.7,
+                      }}>
+                      {full?.hosts?.[t.speaker] ?? hostName(t.speaker)}
+                    </Text>
+                    <Text
+                      style={{
+                        marginTop: 2,
+                        fontSize: 15,
+                        lineHeight: 21,
+                        fontFamily: bodyFont,
+                        color: isActive ? titleColor : mutedText,
+                        fontWeight: isActive ? '600' : '400',
+                      }}>
+                      {t.text}
+                    </Text>
+                  </View>
+                );
+              })}
+            </ScrollView>
+          )}
+
+          {/* Bottom controls — gradient fade lets the transcript melt underneath */}
+          <View style={[styles.bottomBar, { paddingBottom: inset.bottom + 6 }]}>
+            <LinearGradient
+              colors={['transparent', fadeColor, fadeColor]}
+              style={StyleSheet.absoluteFill}
+              pointerEvents="none"
+            />
+
+            {/* Scrubber */}
+            <View>
+              <Slider
+                minimumValue={0}
+                maximumValue={total}
+                value={value}
+                onValueChange={setDrag}
+                onSlidingComplete={(v) => {
+                  seekTo(v);
+                  setDrag(null);
+                }}
+                minimumTrackTintColor={Colors.primary}
+                maximumTrackTintColor={dark ? '#ffffff30' : '#00000020'}
+                thumbTintColor={Colors.primary}
+              />
+              <View style={styles.times}>
+                <Text style={[styles.time, { color: mutedText, fontFamily: bodyFont }]}>
+                  {formatTime(value)}
+                </Text>
+                <Text style={[styles.time, { color: mutedText, fontFamily: bodyFont }]}>
+                  -{formatTime(Math.max(0, total - value))}
+                </Text>
+              </View>
+            </View>
+
+            {/* Transport */}
+            <View style={styles.transport}>
+              <Pressable hitSlop={10} onPress={cycleRate} style={styles.rateBtn}>
+                <Text style={[styles.rate, { color: titleColor, fontFamily: semiFont }]}>{rate}×</Text>
+              </Pressable>
+
+              <Pressable hitSlop={10} onPress={() => skip(-15)}>
+                <Ionicons name="play-back" size={wp(7)} color={titleColor} />
+              </Pressable>
+
+              <Pressable onPress={toggle} style={styles.playBtn}>
+                {isBuffering && !isPlaying ? (
+                  <ActivityIndicator color="#fff" />
+                ) : (
+                  <Ionicons
+                    name={isPlaying ? 'pause' : 'play'}
+                    size={wp(7)}
+                    color="#fff"
+                    style={{ marginLeft: isPlaying ? 0 : 3 }}
+                  />
+                )}
+              </Pressable>
+
+              <Pressable hitSlop={10} onPress={() => skip(15)}>
+                <Ionicons name="play-forward" size={wp(7)} color={titleColor} />
+              </Pressable>
+
+              <Pressable
+                hitSlop={10}
+                onPress={() => toggleSaved({ id: episode.id, saved: !isSaved })}
+                style={styles.rateBtn}>
+                <Ionicons
+                  name={isSaved ? 'bookmark' : 'bookmark-outline'}
+                  size={24}
+                  color={isSaved ? Colors.primary : subColor}
+                />
+              </Pressable>
+            </View>
+          </View>
+        </View>
+      </SafeAreaView>
+    </LinearGradient>
   );
 }
+
+const styles = StyleSheet.create({
+  flex: { flex: 1 },
+  center: { alignItems: 'center', justifyContent: 'center' },
+  closeBtn: { borderRadius: 9999, backgroundColor: Colors.primary, paddingHorizontal: 24, paddingVertical: 12 },
+  closeText: { fontSize: 15, fontWeight: '600', color: '#ffffff' },
+  topbar: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: wp(5), paddingVertical: 8 },
+  nowPlaying: { fontSize: 12, fontWeight: '600', letterSpacing: 1.6, textTransform: 'uppercase' },
+  topActions: { flexDirection: 'row', alignItems: 'center', gap: 16 },
+  artWrap: { alignItems: 'center' },
+  art: {
+    width: wp(100),
+    height: wp(70),
+    alignItems: 'center',
+    justifyContent: 'center',
+    overflow: 'hidden',
+    shadowRadius: 24,
+    shadowOffset: { width: 0, height: 12 },
+    elevation: 12,
+  },
+  wave: { position: 'absolute', bottom: wp(7), flexDirection: 'row', alignItems: 'center', gap: wp(1.5), opacity: 0.18 },
+  meta: { alignItems: 'center', paddingVertical: hp(3), paddingHorizontal: wp(6) },
+  pill: { marginBottom: 12, alignSelf: 'center', borderRadius: 9999, paddingHorizontal: 14, paddingVertical: 5 },
+  pillText: { fontSize: 13, fontWeight: '700' },
+  title: { maxWidth: wp(85), textAlign: 'center', fontSize: 26, fontWeight: '800', lineHeight: 34, letterSpacing: -0.5 },
+  hosts: { marginTop: 12, fontSize: 15 },
+  transcriptLabel: { marginBottom: 12, fontSize: 12, fontWeight: '600', letterSpacing: 1.4, textTransform: 'uppercase' },
+  bottomBar: { position: 'absolute', bottom: 0, width: '100%', paddingHorizontal: wp(6), paddingTop: hp(2) },
+  times: { flexDirection: 'row', justifyContent: 'space-between', paddingHorizontal: 8 },
+  time: { fontSize: 13 },
+  transport: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 8, marginTop: 8 },
+  rateBtn: { width: 56, alignItems: 'center' },
+  rate: { fontSize: 16, fontWeight: '700' },
+  playBtn: {
+    width: wp(16),
+    height: wp(16),
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 9999,
+    backgroundColor: Colors.primary,
+    shadowColor: Colors.primary,
+    shadowOpacity: 0.5,
+    shadowRadius: 18,
+    shadowOffset: { width: 0, height: 8 },
+    elevation: 10,
+  },
+});

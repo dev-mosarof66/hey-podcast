@@ -1,96 +1,108 @@
 import { useEffect, useRef } from 'react';
-import { Animated, Easing, Platform, View } from 'react-native';
+import { Animated, Easing, Platform } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
+import { Ionicons } from '@expo/vector-icons';
 
-const TILE_COLOR = '#0F6E56';
-const MIN_SCALE = 0.35;
-const HALF_CYCLE = 650;
 const USE_NATIVE_DRIVER = Platform.OS !== 'web';
+const RING_COUNT = 3;
+const CYCLE = 2100; // one full ripple, ms
 
-const BARS = [
-  { ratio: 0.4, color: '#9FE1CB' },
-  { ratio: 0.8, color: '#BFEEDD' },
-  { ratio: 0.95, color: '#E1F5EE' },
-  { ratio: 0.8, color: '#BFEEDD' },
-  { ratio: 0.4, color: '#9FE1CB' },
-];
-
-const CENTER_INDEX = Math.floor(BARS.length / 2);
-
-interface BarProps {
-  width: number;
-  height: number;
-  color: string;
-  delay: number;
-}
-
-function Bar({ width, height, color, delay }: BarProps) {
-  const scale = useRef(new Animated.Value(MIN_SCALE)).current;
+/** A sound-ripple ring that expands out from the center and fades. */
+function Ring({ base, delay }: { base: number; delay: number }) {
+  const progress = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
     const loop = Animated.loop(
-      Animated.sequence([
-        Animated.timing(scale, {
-          toValue: 1,
-          duration: HALF_CYCLE,
-          easing: Easing.inOut(Easing.ease),
-          useNativeDriver: USE_NATIVE_DRIVER,
-        }),
-        Animated.timing(scale, {
-          toValue: MIN_SCALE,
-          duration: HALF_CYCLE,
-          easing: Easing.inOut(Easing.ease),
-          useNativeDriver: USE_NATIVE_DRIVER,
-        }),
-      ])
+      Animated.timing(progress, {
+        toValue: 1,
+        duration: CYCLE,
+        easing: Easing.out(Easing.ease),
+        useNativeDriver: USE_NATIVE_DRIVER,
+      })
     );
-
-    const timer = setTimeout(() => loop.start(), delay);
+    const t = setTimeout(() => loop.start(), delay);
     return () => {
-      clearTimeout(timer);
+      clearTimeout(t);
       loop.stop();
     };
-  }, [scale, delay]);
+  }, [progress, delay]);
+
+  const scale = progress.interpolate({ inputRange: [0, 1], outputRange: [0.25, 1.05] });
+  const opacity = progress.interpolate({ inputRange: [0, 0.12, 1], outputRange: [0, 0.6, 0] });
 
   return (
     <Animated.View
       style={{
-        width,
-        height,
-        borderRadius: width / 2,
-        backgroundColor: color,
-        transform: [{ scaleY: scale }],
+        position: 'absolute',
+        width: base,
+        height: base,
+        borderRadius: base / 2,
+        borderWidth: Math.max(2, base * 0.035),
+        borderColor: '#9FE1CB',
+        opacity,
+        transform: [{ scale }],
       }}
     />
   );
 }
 
 export function AnimatedLogo({ size = 64 }: { size?: number }) {
-  const barWidth = size * 0.1;
-  const gap = size * 0.06;
-  const maxBarHeight = size * 0.62;
+  const tile = size * 1.2;
+  const pulse = useRef(new Animated.Value(1)).current;
+
+  // Gentle breathing on the center mark so it feels alive between ripples.
+  useEffect(() => {
+    const loop = Animated.loop(
+      Animated.sequence([
+        Animated.timing(pulse, {
+          toValue: 1.12,
+          duration: 700,
+          easing: Easing.inOut(Easing.ease),
+          useNativeDriver: USE_NATIVE_DRIVER,
+        }),
+        Animated.timing(pulse, {
+          toValue: 1,
+          duration: 700,
+          easing: Easing.inOut(Easing.ease),
+          useNativeDriver: USE_NATIVE_DRIVER,
+        }),
+      ])
+    );
+    loop.start();
+    return () => loop.stop();
+  }, [pulse]);
 
   return (
-    <View
+    <LinearGradient
+      colors={['#8b2fe8', '#7008e7', '#4c1d95']}
+      start={{ x: 0, y: 0 }}
+      end={{ x: 1, y: 1 }}
       style={{
-        width: size * 1.2,
-        height: size * 1.2,
-        borderRadius: size,
-        backgroundColor: TILE_COLOR,
-        flexDirection: 'row',
+        width: tile,
+        height: tile,
+        borderRadius: tile / 2,
         alignItems: 'center',
         justifyContent: 'center',
-        gap,
+        overflow: 'hidden',
       }}>
-      {BARS.map((bar, i) => (
-        <Bar
-          key={i}
-          width={barWidth}
-          height={maxBarHeight * bar.ratio}
-          color={bar.color}
-          // symmetric: bars equidistant from the center pulse together
-          delay={Math.abs(i - CENTER_INDEX) * 150}
-        />
+      {/* Expanding sound ripples */}
+      {Array.from({ length: RING_COUNT }).map((_, i) => (
+        <Ring key={i} base={size * 0.92} delay={i * (CYCLE / RING_COUNT)} />
       ))}
-    </View>
+
+      {/* Center play mark */}
+      <Animated.View
+        style={{
+          width: size * 0.5,
+          height: size * 0.5,
+          borderRadius: size * 0.25,
+          backgroundColor: 'rgba(255,255,255,0.14)',
+          alignItems: 'center',
+          justifyContent: 'center',
+          transform: [{ scale: pulse }],
+        }}>
+        <Ionicons name="play" size={size * 0.28} color="#ffffff" style={{ marginLeft: size * 0.03 }} />
+      </Animated.View>
+    </LinearGradient>
   );
 }

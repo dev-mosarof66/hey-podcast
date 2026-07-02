@@ -14,7 +14,7 @@ import { enqueue } from '../engine/worker';
 const TRIAL_DAYS = 7;
 const CODE_CHARS = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
 
-function randomCode(len = 8): string {
+function randomCode(len = 6): string {
   let c = '';
   for (let i = 0; i < len; i++) c += CODE_CHARS[Math.floor(Math.random() * CODE_CHARS.length)];
   return c;

@@ -1,8 +1,8 @@
 {
   "expo": {
-    "name": "Hey Podcast",
+    "name": "Daily Download",
     "slug": "hey-podcast",
-    "version": "1.0.0",
+    "version": "2.0.0",
     "scheme": "heypodcast",
     "web": {
       "bundler": "metro",
@@ -23,7 +23,8 @@
         {
           "color": "#721378"
         }
-      ]
+      ],
+      "expo-font"
     ],
     "orientation": "portrait",
     "icon": "./assets/playstore-icon.png",
@@ -31,7 +32,7 @@
     "splash": {
       "image": "./assets/logo.png",
       "resizeMode": "contain",
-      "backgroundColor": "#ffffff"
+      "backgroundColor": "#f3e8ff"
     },
     "assetBundlePatterns": [
       "**/*"
@@ -48,9 +49,10 @@
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/android-icon.png",
-        "backgroundColor": "#ffffff"
+        "backgroundColor": "#4c1d95"
       },
-      "package": "com.heypodcast.app"
+      "package": "com.heypodcast.app",
+      "googleServicesFile": "./google-services.json"
     },
     "extra": {
       "router": {},

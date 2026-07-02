@@ -3,15 +3,18 @@ import {
   Animated,
   Keyboard,
   Platform,
+  StyleSheet,
   Text,
   TouchableWithoutFeedback,
   View,
   type KeyboardEvent,
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useFonts, Sora_500Medium, Sora_800ExtraBold } from '@expo-google-fonts/sora';
 
 import { AnimatedLogo } from 'components/AnimatedLogo';
 import { AuthBackground } from 'components/AuthBackground';
+import { useTheme } from 'components/ThemeProvider';
 import { hp, wp } from 'utils/utils';
 
 interface Props {
@@ -28,6 +31,8 @@ interface Props {
  */
 export function AuthShell({ title, subtitle, children }: Props) {
   const insets = useSafeAreaInsets();
+  const dark = useTheme().scheme === 'dark';
+  const [fontsLoaded] = useFonts({ Sora_500Medium, Sora_800ExtraBold });
   const translateY = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
@@ -35,8 +40,6 @@ export function AuthShell({ title, subtitle, children }: Props) {
     const hideEvt = Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide';
 
     const onShow = (e: KeyboardEvent) => {
-      // Lift the card to sit just above the keyboard (it already reserves the
-      // bottom safe-area inset, so subtract that to avoid a double gap).
       const lift = Math.max(e.endCoordinates.height - insets.bottom, 0);
       Animated.timing(translateY, {
         toValue: -lift,
@@ -61,34 +64,36 @@ export function AuthShell({ title, subtitle, children }: Props) {
     };
   }, [insets.bottom, translateY]);
 
+  const background = dark ? '#020618' : '#f1f5f9';
+
   return (
-    <View className="flex-1">
+    <View style={styles.root}>
       {/* Textured background */}
       <AuthBackground />
 
       <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
-        <View className="flex-1">
+        <View style={styles.root}>
           {/* Top: logo + title + tagline (outside the card) */}
-          <SafeAreaView edges={['top']} className="flex-1 items-center justify-center px-8">
+          <SafeAreaView edges={['top']} style={styles.header}>
             <AnimatedLogo size={wp(15)} />
-            <Text className="mt-4 w-full text-center text-3xl font-extrabold tracking-tight text-white">
+            <Text style={[styles.title, fontsLoaded && { fontFamily: 'Sora_800ExtraBold' }]}>
               {title}
             </Text>
-            <Text className="mt-2 text-center text-md text-white/75">{subtitle}</Text>
+            <Text style={[styles.subtitle, fontsLoaded && { fontFamily: 'Sora_500Medium' }]}>
+              {subtitle}
+            </Text>
           </SafeAreaView>
 
           {/* Bottom card — slides up with the keyboard */}
           <Animated.View
-            className="bg-background rounded-tl-[32px] p-6"
-            style={{
-              paddingBottom: insets.bottom + hp(2),
-              transform: [{ translateY }],
-              shadowColor: '#000',
-              shadowOpacity: 0.2,
-              shadowRadius: 20,
-              shadowOffset: { width: 0, height: -6 },
-              elevation: 20,
-            }}>
+            style={[
+              styles.card,
+              {
+                backgroundColor: background,
+                paddingBottom: insets.bottom + hp(2),
+                transform: [{ translateY }],
+              },
+            ]}>
             {children}
           </Animated.View>
         </View>
@@ -96,3 +101,30 @@ export function AuthShell({ title, subtitle, children }: Props) {
     </View>
   );
 }
+
+const styles = StyleSheet.create({
+  root: { flex: 1 },
+  header: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 32 },
+  title: {
+    width: '100%',
+    textAlign: 'center',
+    fontSize: 30,
+    fontWeight: '800',
+    letterSpacing: -0.5,
+    color: '#ffffff',
+  },
+  subtitle: {
+    textAlign: 'center',
+    fontSize: 15,
+    color: 'rgba(255,255,255,0.75)',
+  },
+  card: {
+    borderTopLeftRadius: 32,
+    padding: 24,
+    shadowColor: '#000',
+    shadowOpacity: 0.2,
+    shadowRadius: 20,
+    shadowOffset: { width: 0, height: -6 },
+    elevation: 20,
+  },
+});

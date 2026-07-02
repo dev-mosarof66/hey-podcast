@@ -1,15 +1,29 @@
 import { useState } from 'react';
-import { Pressable, ScrollView, Text, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import Toast from 'react-native-toast-message';
+import { useFonts, Sora_500Medium, Sora_600SemiBold, Sora_700Bold } from '@expo-google-fonts/sora';
 
 import { PrimaryButton } from 'components/Button';
+import { useTheme } from 'components/ThemeProvider';
 import { Colors } from 'constants/Colors';
 import type { IoniconName } from 'constants/types';
 import { hp, wp } from 'utils/utils';
+
+const PRIMARY = '#7008e7';
+const LIGHT_BG = ['#efe6fc', '#e8dcf9', '#e0d2f4'] as const;
+const DARK_BG = ['#020618', '#0b0a1e', '#0a0a1a'] as const;
+
+const CTA_GLOW = {
+  shadowColor: Colors.primary,
+  shadowOpacity: 0.4,
+  shadowRadius: 18,
+  shadowOffset: { width: 0, height: 10 },
+  elevation: 10,
+};
 
 const FEATURES = [
   'Unlimited on-demand episodes',
@@ -29,21 +43,32 @@ const METHODS: { id: string; label: string; icon: IoniconName; color: string }[]
   { id: 'card', label: 'Credit / Debit Card', icon: 'card', color: Colors.primary },
 ];
 
-function Radio({ active }: { active: boolean }) {
+function Radio({ active, inactiveBorder }: { active: boolean; inactiveBorder: string }) {
   return (
-    <View
-      className={`h-5 w-5 items-center justify-center rounded-full border-2 ${
-        active ? 'border-primary' : 'border-foreground/30'
-      }`}>
-      {active && <View className="bg-primary h-2.5 w-2.5 rounded-full" />}
+    <View style={[styles.radio, { borderColor: active ? PRIMARY : inactiveBorder }]}>
+      {active && <View style={styles.radioDot} />}
     </View>
   );
 }
 
 export default function PricingScreen() {
+  const dark = useTheme().scheme === 'dark';
+  const [fontsLoaded] = useFonts({ Sora_500Medium, Sora_600SemiBold, Sora_700Bold });
   const [plan, setPlan] = useState<PlanId>('monthly');
   const [method, setMethod] = useState('google');
   const dismiss = () => router.back();
+
+  const titleColor = dark ? '#f8fafc' : '#1a0b2e';
+  const subColor = dark ? 'rgba(248,250,252,0.55)' : 'rgba(26,11,46,0.55)';
+  const labelColor = dark ? 'rgba(248,250,252,0.45)' : 'rgba(26,11,46,0.45)';
+  const cardBg = dark ? '#16161f' : '#ffffff';
+  const cardBorder = dark ? 'rgba(248,250,252,0.10)' : 'rgba(112,8,231,0.18)';
+  const activeFill = dark ? '#241440' : '#f6f0fe';
+  const inactiveBorder = dark ? 'rgba(248,250,252,0.25)' : 'rgba(26,11,46,0.25)';
+
+  const titleFont = fontsLoaded ? 'Sora_700Bold' : undefined;
+  const bodyFont = fontsLoaded ? 'Sora_500Medium' : undefined;
+  const semiFont = fontsLoaded ? 'Sora_600SemiBold' : undefined;
 
   // Billing isn't live yet — let users preview the plans, but don't take
   // payments. Promo codes remain the way to unlock premium for now.
@@ -56,109 +81,153 @@ export default function PricingScreen() {
   };
 
   return (
-    <SafeAreaView className="bg-background flex-1" edges={['top', 'bottom']}>
-      <View className="flex-row justify-end px-6 pt-2">
-        <Pressable hitSlop={12} onPress={dismiss}>
-          <Ionicons name="close" size={26} color={Colors.muted} />
-        </Pressable>
-      </View>
-
-      <ScrollView
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ paddingHorizontal: wp(6), paddingBottom: hp(2) }}>
-        {/* Hero */}
-        <View className="items-center pb-6 pt-1">
-          <LinearGradient
-            colors={['#9B1FA4', '#721378', '#3C0A45']}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={{ width: wp(18), height: wp(18), borderRadius: wp(9) }}
-            className="items-center justify-center">
-            <Ionicons name="diamond" size={wp(8)} color="#fff" />
-          </LinearGradient>
-          <Text className="text-foreground mt-4 text-3xl font-bold tracking-tight">
-            Hey Podcast Premium
-          </Text>
-          <Text className="text-foreground/50 mt-1 text-center text-sm">
-            Your daily digest, unlimited.
-          </Text>
+    <LinearGradient colors={dark ? DARK_BG : LIGHT_BG} style={styles.flex}>
+      <SafeAreaView style={styles.flex} edges={['top', 'bottom']}>
+        <View style={styles.topbar}>
+          <Pressable hitSlop={12} onPress={dismiss}>
+            <Ionicons name="close" size={26} color={titleColor} />
+          </Pressable>
         </View>
 
-        {/* Features */}
-        <View className="mb-7 gap-3">
-          {FEATURES.map((f) => (
-            <View key={f} className="flex-row items-center gap-3">
-              <Ionicons name="checkmark-circle" size={22} color={Colors.primary} />
-              <Text className="text-foreground text-base">{f}</Text>
-            </View>
-          ))}
-        </View>
+        <ScrollView
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={{ paddingHorizontal: wp(6), paddingBottom: hp(2) }}>
+          {/* Hero */}
+          <View style={styles.hero}>
+            <LinearGradient
+              colors={['#8b2fe8', '#7008e7', '#4c1d95']}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={[styles.heroBadge, CTA_GLOW]}>
+              <Ionicons name="diamond" size={wp(8)} color="#fff" />
+            </LinearGradient>
+            <Text style={[styles.heroTitle, { color: titleColor, fontFamily: titleFont }]}>
+              Daily Download Premium
+            </Text>
+            <Text style={[styles.heroSub, { color: subColor, fontFamily: bodyFont }]}>
+              Your daily digest, unlimited.
+            </Text>
+          </View>
 
-        {/* Plans */}
-        <Text className="text-foreground/40 mb-2 text-xs font-semibold uppercase tracking-widest">
-          Choose a plan
-        </Text>
-        <View className="gap-3">
-          {PLANS.map((p) => {
-            const active = plan === p.id;
-            return (
-              <Pressable
-                key={p.id}
-                onPress={() => setPlan(p.id)}
-                className={`flex-row items-center justify-between rounded-2xl border p-4 active:opacity-80 ${
-                  active ? 'border-primary bg-primary/5' : 'border-foreground/10 bg-card'
-                }`}>
-                <View className="flex-row items-center gap-3">
-                  <Radio active={active} />
-                  <View>
-                    <Text className="text-foreground text-base font-bold">{p.label}</Text>
-                    {p.note && (
-                      <Text className="text-primary text-xs font-semibold">{p.note}</Text>
-                    )}
+          {/* Features */}
+          <View style={styles.features}>
+            {FEATURES.map((f) => (
+              <View key={f} style={styles.featureRow}>
+                <Ionicons name="checkmark-circle" size={22} color={PRIMARY} />
+                <Text style={[styles.featureText, { color: titleColor, fontFamily: bodyFont }]}>{f}</Text>
+              </View>
+            ))}
+          </View>
+
+          {/* Plans */}
+          <Text style={[styles.sectionLabel, { color: labelColor, fontFamily: semiFont }]}>
+            Choose a plan
+          </Text>
+          <View style={{ gap: 12 }}>
+            {PLANS.map((p) => {
+              const active = plan === p.id;
+              return (
+                <Pressable
+                  key={p.id}
+                  onPress={() => setPlan(p.id)}
+                  style={[
+                    styles.optionRow,
+                    { backgroundColor: active ? activeFill : cardBg, borderColor: active ? PRIMARY : cardBorder },
+                  ]}>
+                  <View style={styles.optionLeft}>
+                    <Radio active={active} inactiveBorder={inactiveBorder} />
+                    <View>
+                      <Text style={[styles.optionLabel, { color: titleColor, fontFamily: semiFont }]}>
+                        {p.label}
+                      </Text>
+                      {p.note && (
+                        <Text style={[styles.optionNote, { fontFamily: semiFont }]}>{p.note}</Text>
+                      )}
+                    </View>
                   </View>
-                </View>
-                <Text className="text-foreground text-lg font-bold">
-                  {p.price}
-                  <Text className="text-foreground/50 text-sm font-medium">{p.per}</Text>
-                </Text>
-              </Pressable>
-            );
-          })}
-        </View>
+                  <Text style={[styles.price, { color: titleColor, fontFamily: titleFont }]}>
+                    {p.price}
+                    <Text style={[styles.per, { color: subColor, fontFamily: bodyFont }]}>{p.per}</Text>
+                  </Text>
+                </Pressable>
+              );
+            })}
+          </View>
 
-        {/* Payment method */}
-        <Text className="text-foreground/40 mb-2 mt-6 text-xs font-semibold uppercase tracking-widest">
-          Payment method
-        </Text>
-        <View className="gap-3">
-          {METHODS.map((m) => {
-            const active = method === m.id;
-            return (
-              <Pressable
-                key={m.id}
-                onPress={() => setMethod(m.id)}
-                className={`flex-row items-center gap-3 rounded-2xl border p-4 active:opacity-80 ${
-                  active ? 'border-primary bg-primary/5' : 'border-foreground/10 bg-card'
-                }`}>
-                <Ionicons name={m.icon} size={22} color={m.color} />
-                <Text className="text-foreground flex-1 text-base font-semibold">{m.label}</Text>
-                <Radio active={active} />
-              </Pressable>
-            );
-          })}
-        </View>
-      </ScrollView>
+          {/* Payment method */}
+          <Text style={[styles.sectionLabel, { color: labelColor, fontFamily: semiFont }]}>
+            Payment method
+          </Text>
+          <View style={{ gap: 12 }}>
+            {METHODS.map((m) => {
+              const active = method === m.id;
+              return (
+                <Pressable
+                  key={m.id}
+                  onPress={() => setMethod(m.id)}
+                  style={[
+                    styles.methodRow,
+                    { backgroundColor: active ? activeFill : cardBg, borderColor: active ? PRIMARY : cardBorder },
+                  ]}>
+                  <Ionicons name={m.icon} size={22} color={m.color} />
+                  <Text style={[styles.methodLabel, { color: titleColor, fontFamily: semiFont }]}>
+                    {m.label}
+                  </Text>
+                  <Radio active={active} inactiveBorder={inactiveBorder} />
+                </Pressable>
+              );
+            })}
+          </View>
+        </ScrollView>
 
-      {/* Footer */}
-      <View className="gap-2 px-6 pb-2 pt-3">
-        <PrimaryButton text="Coming soon" onPress={onSubscribe} />
-        <Text className="text-foreground/40 text-center text-xs">
-          Premium billing is coming soon.
-        </Text>
-        <Pressable hitSlop={8} className="self-center py-1" onPress={dismiss}>
-          <Text className="text-foreground/50 text-sm font-semibold">Maybe later</Text>
-        </Pressable>
-      </View>
-    </SafeAreaView>
+        {/* Footer */}
+        <View style={styles.footer}>
+          <PrimaryButton onPress={onSubscribe} style={CTA_GLOW}>
+            <Text style={[styles.ctaText, { fontFamily: semiFont }]}>Coming soon</Text>
+          </PrimaryButton>
+          <Text style={[styles.footNote, { color: labelColor, fontFamily: bodyFont }]}>
+            Premium billing is coming soon.
+          </Text>
+          <Pressable hitSlop={8} style={styles.later} onPress={dismiss}>
+            <Text style={[styles.laterText, { color: subColor, fontFamily: semiFont }]}>Maybe later</Text>
+          </Pressable>
+        </View>
+      </SafeAreaView>
+    </LinearGradient>
   );
 }
+
+const styles = StyleSheet.create({
+  flex: { flex: 1 },
+  topbar: { flexDirection: 'row', justifyContent: 'flex-end', paddingHorizontal: wp(6), paddingTop: 8 },
+  hero: { alignItems: 'center', paddingTop: 4, paddingBottom: hp(3) },
+  heroBadge: { width: wp(18), height: wp(18), borderRadius: wp(9), alignItems: 'center', justifyContent: 'center' },
+  heroTitle: { marginTop: 16, fontSize: 26, fontWeight: '700', letterSpacing: -0.5 },
+  heroSub: { marginTop: 4, textAlign: 'center', fontSize: 14 },
+  features: { marginBottom: hp(3), gap: 12 },
+  featureRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  featureText: { fontSize: 15 },
+  sectionLabel: { marginTop: 24, marginBottom: 10, fontSize: 12, fontWeight: '600', letterSpacing: 1.4, textTransform: 'uppercase' },
+  optionRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    borderRadius: 18,
+    borderWidth: 1.5,
+    padding: 16,
+  },
+  optionLeft: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  optionLabel: { fontSize: 16, fontWeight: '700' },
+  optionNote: { fontSize: 12, fontWeight: '600', color: PRIMARY },
+  price: { fontSize: 18, fontWeight: '700' },
+  per: { fontSize: 14, fontWeight: '500' },
+  methodRow: { flexDirection: 'row', alignItems: 'center', gap: 12, borderRadius: 18, borderWidth: 1.5, padding: 16 },
+  methodLabel: { flex: 1, fontSize: 16, fontWeight: '600' },
+  radio: { height: 20, width: 20, alignItems: 'center', justifyContent: 'center', borderRadius: 9999, borderWidth: 2 },
+  radioDot: { height: 10, width: 10, borderRadius: 9999, backgroundColor: PRIMARY },
+  footer: { paddingHorizontal: wp(6), paddingTop: 12, paddingBottom: 8, gap: 8 },
+  ctaText: { fontSize: 18, fontWeight: '600', color: '#ffffff' },
+  footNote: { textAlign: 'center', fontSize: 12 },
+  later: { alignSelf: 'center', paddingVertical: 4 },
+  laterText: { fontSize: 14, fontWeight: '600' },
+});

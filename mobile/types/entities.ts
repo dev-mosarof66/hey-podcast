@@ -1,5 +1,5 @@
 /**
- * Domain entities — the canonical data model for Hey Podcast.
+ * Domain entities — the canonical data model for Daily Download.
  *
  * Derived from the guide's implied schema (§5 "stores users / topic-follows /
  * episode metadata", §8 Phase 2 "auth, users, topic-follows, episodes") and

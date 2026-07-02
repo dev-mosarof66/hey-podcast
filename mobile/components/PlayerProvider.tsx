@@ -167,7 +167,7 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
         try {
           player.setActiveForLockScreen(
             true,
-            { title: ep.title, artist: ep.topic, albumTitle: 'Hey Podcast' },
+            { title: ep.title, artist: ep.topic, albumTitle: 'Daily Download' },
             { showSeekForward: true, showSeekBackward: true }
           );
         } catch {
