@@ -1,0 +1,36 @@
+# EAS Build archive ignore.
+#
+# When this file exists, EAS uses it INSTEAD of .gitignore to decide what to
+# upload — so it must ALSO exclude dependencies/build output, not just extras.
+#
+# This is a monorepo and the mobile app (mobile/) is the only thing EAS builds,
+# but EAS archives from the repo root, so the sibling projects were being swept
+# into the upload (~93 MB). Excluding them leaves just the app (a few MB).
+
+# ── Sibling projects — not part of the mobile build ─────────────────────────
+/admin/
+/server/
+/llm/
+/docs/
+/branding/
+
+# ── Dependencies & build output (must be listed; .easignore replaces .gitignore)
+node_modules/
+dist/
+build/
+web-build/
+.expo/
+*.tsbuildinfo
+
+# ── VCS & noise ─────────────────────────────────────────────────────────────
+.git/
+*.log
+.DS_Store
+
+# ── Secrets that must never reach the build servers ─────────────────────────
+# (google-services.json is intentionally NOT ignored — the Android build needs it)
+**/.env
+**/.env.*
+!**/.env.example
+**/private-key.json
+**/*-firebase-adminsdk-*.json
